@@ -1,36 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 番迹
 
-## Getting Started
+手机优先的云端追番记录 PWA，使用 Next.js、Vercel、Supabase 与 Bangumi API。
 
-First, run the development server:
+## 本地运行
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. 复制 `.env.example` 为 `.env.local`。
+2. 在 Supabase 项目的 Settings → API 复制 Project URL 和 anon public key，填入 `.env.local`。
+3. 在 Supabase SQL Editor 中完整执行 `supabase.sql`。
+4. 在 Authentication → URL Configuration 中，将 Site URL 暂设为 `http://localhost:3000`。
+5. 运行 `npm run dev`，打开 `http://localhost:3000`。
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+没有环境变量时，应用会以演示模式打开；此时更改只在当前页面有效。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 部署到 Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. 将项目推送到 GitHub（不要提交 `.env.local`）。
+2. 在 Vercel 导入仓库。
+3. 在 Vercel Environment Variables 添加 `NEXT_PUBLIC_SUPABASE_URL` 与 `NEXT_PUBLIC_SUPABASE_ANON_KEY`。
+4. 部署后复制正式的 `https://项目名.vercel.app` 地址。
+5. 回到 Supabase Authentication → URL Configuration，把 Site URL 改成正式地址，并把该地址加入 Redirect URLs。
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`anon key` 可以放在前端，数据安全由 `supabase.sql` 中的 RLS 策略保证；绝不要把 `service_role` key 放入项目或 Vercel 前端环境变量。

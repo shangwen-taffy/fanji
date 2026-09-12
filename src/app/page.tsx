@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Check, ChevronRight, Clock3, Compass, Heart, Library, Loader2, LogOut, Minus, Plus, Search, Sparkles, Star, UserRound, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, ChevronRight, Clock3, Compass, Heart, Library, Loader2, LogOut, Minus, Plus, Search, Sparkles, Star, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Status = "wish" | "watching" | "done" | "paused" | "dropped";
@@ -34,8 +34,19 @@ export default function Home() {
 
   useEffect(() => {
     if (!supabase) return;
-    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => setUserEmail(session?.user.email ?? null));
+    const clearAuthTokensFromAddress = () => {
+      if (window.location.hash.includes("access_token") || window.location.hash.includes("refresh_token")) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+      if (data.user) clearAuthTokensFromAddress();
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user.email ?? null);
+      if (session) clearAuthTokensFromAddress();
+    });
     return () => data.subscription.unsubscribe();
   }, [supabase]);
 
@@ -88,6 +99,7 @@ export default function Home() {
   return (
     <main className="app-shell">
       <header className="topbar">
+        {tab !== "home" && <button className="back-button" onClick={() => setTab("home")} aria-label="返回首页"><ArrowLeft size={19}/><span>返回</span></button>}
         <button className="brand" onClick={() => setTab("home")}><span className="brand-mark"><Sparkles size={20}/></span><span>番迹<small>把热爱留在时间里</small></span></button>
         <div className="header-search"><Search size={18}/><input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && searchAnime()} placeholder="搜索番剧、角色或制作人..."/><button onClick={searchAnime}>{searching ? <Loader2 className="spin" size={17}/> : "搜索"}</button></div>
         <button className="avatar" onClick={() => setTab("profile")}><UserRound size={19}/></button>

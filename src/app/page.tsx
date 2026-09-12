@@ -60,11 +60,18 @@ export default function Home() {
 
   async function saveRecord(item: RecordItem) {
     setRecords((old) => [item, ...old.filter((x) => x.id !== item.id)]);
-    setSelected(item);
+    setSelected((current) => current?.id === item.id ? item : current);
     if (supabase && userEmail) {
       const { data: auth } = await supabase.auth.getUser();
       await supabase.from("user_anime").upsert({ user_id: auth.user?.id, anime_id: item.id, name: item.name, name_cn: item.name_cn, image_url: item.image, total_episodes: item.eps, community_score: item.score, status: item.status, progress: item.progress, rating: item.rating, note: item.note, updated_at: new Date().toISOString() }, { onConflict: "user_id,anime_id" });
     }
+  }
+
+  async function addFromSearch(anime: Anime) {
+    const item: RecordItem = { ...anime, status: "wish", progress: 0, rating: 0 };
+    await saveRecord(item);
+    setNotice(userEmail ? "已加入“想看”，并同步到云端" : "已加入“想看”；登录后才能永久保存");
+    window.setTimeout(() => setNotice(""), 3500);
   }
 
   async function login() {
@@ -102,7 +109,7 @@ export default function Home() {
         {tab === "discover" && <>
           <div className="simple-head"><p className="eyebrow">DISCOVER</p><h1>发现下一部心动</h1><p>从 Bangumi 搜索动画资料，把喜欢的作品收入片库。</p></div>
           <div className="mobile-search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key === "Enter" && searchAnime()} placeholder="输入番剧名称"/><button onClick={searchAnime}>搜索</button></div>
-          <div className="result-grid">{searching ? <Empty text="正在穿过次元壁搜索..."/> : results.length ? results.map(item => <SearchCard key={item.id} item={item} onAdd={(anime) => saveRecord({...anime, status:"wish", progress:0, rating:0})}/>) : <Empty text="搜索一部你喜欢的动画吧"/>}</div>
+          <div className="result-grid">{searching ? <Empty text="正在穿过次元壁搜索..."/> : results.length ? results.map(item => <SearchCard key={item.id} item={item} added={records.some(record => record.id === item.id)} onAdd={addFromSearch}/>) : <Empty text="搜索一部你喜欢的动画吧"/>}</div>
         </>}
 
         {tab === "library" && <>
@@ -118,15 +125,17 @@ export default function Home() {
         </div>}
       </section>
 
+      {notice && tab !== "profile" && <div className="toast"><Check size={17}/>{notice}</div>}
+
       <nav className="bottom-nav"><NavButton active={tab==="home"} icon={<BookOpen/>} label="首页" onClick={()=>setTab("home")}/><NavButton active={tab==="discover"} icon={<Compass/>} label="发现" onClick={()=>setTab("discover")}/><NavButton active={tab==="library"} icon={<Library/>} label="片库" onClick={()=>setTab("library")}/><NavButton active={tab==="profile"} icon={<UserRound/>} label="我的" onClick={()=>setTab("profile")}/></nav>
 
-      {selected && <div className="modal-backdrop" onClick={()=>setSelected(null)}><div className="modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setSelected(null)}><X/></button><img src={selected.image || "/placeholder.svg"} alt=""/><div className="modal-content"><p className="eyebrow">EDIT RECORD</p><h2>{selected.name_cn || selected.name}</h2><p className="muted">{selected.name}</p><label>观看状态</label><div className="status-pills">{(Object.keys(statusMeta) as Status[]).map(s=><button key={s} className={selected.status===s?"chosen":""} onClick={()=>saveRecord({...selected,status:s})}>{statusMeta[s].label}</button>)}</div><label>观看进度</label><div className="counter"><button onClick={()=>saveRecord({...selected,progress:Math.max(0,selected.progress-1)})}><Minus/></button><b>{selected.progress} <small>/ {selected.eps || "?"} 集</small></b><button onClick={()=>saveRecord({...selected,progress:Math.min(selected.eps||999,selected.progress+1)})}><Plus/></button></div><label>我的评分</label><div className="rating">{[1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} className={selected.rating>=n?"lit":""} onClick={()=>saveRecord({...selected,rating:n})}>{n}</button>)}</div></div></div></div>}
+      {selected && <div className="modal-backdrop" onClick={()=>setSelected(null)}><div className="modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setSelected(null)}><X/></button><img src={selected.image || "/placeholder.svg"} alt=""/><div className="modal-content"><p className="eyebrow">EDIT RECORD</p><h2>{selected.name_cn || selected.name}</h2><p className="muted">{selected.name}</p><label>观看状态</label><div className="status-pills">{(Object.keys(statusMeta) as Status[]).map(s=><button key={s} className={selected.status===s?"chosen":""} onClick={()=>saveRecord({...selected,status:s})}>{statusMeta[s].label}</button>)}</div><label>观看进度</label><div className="counter"><button onClick={()=>saveRecord({...selected,progress:Math.max(0,selected.progress-1)})}><Minus/></button><b>{selected.progress} <small>/ {selected.eps || "?"} 集</small></b><button onClick={()=>saveRecord({...selected,progress:Math.min(selected.eps||999,selected.progress+1)})}><Plus/></button></div><label>我的评分</label><div className="rating">{[1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} className={selected.rating>=n?"lit":""} onClick={()=>saveRecord({...selected,rating:n})}>{n}</button>)}</div><button className="save-close" onClick={()=>setSelected(null)}><Check size={17}/> 保存并关闭</button></div></div></div>}
     </main>
   );
 }
 
 function AnimeCard({item,onOpen}:{item:RecordItem,onOpen:(x:RecordItem)=>void}) { const pct = item.eps ? Math.round(item.progress/item.eps*100) : 0; return <button className="anime-card" onClick={()=>onOpen(item)}><div className="cover"><img src={item.image || "/placeholder.svg"} alt=""/><span style={{background:statusMeta[item.status].color}}>{statusMeta[item.status].label}</span></div><div className="card-copy"><h3>{item.name_cn || item.name}</h3><p>{item.name}</p><div className="progress-line"><i style={{width:`${pct}%`}}/></div><div className="card-meta"><span>{item.progress} / {item.eps || "?"} 集</span>{item.score && <span><Star size={13} fill="currentColor"/> {item.score}</span>}</div></div></button> }
-function SearchCard({item,onAdd}:{item:Anime,onAdd:(x:Anime)=>void}) { return <article className="search-card"><img src={item.image || "/placeholder.svg"} alt=""/><div><h3>{item.name_cn || item.name}</h3><p>{item.name}</p><span>{item.eps || "?"} 集 · <Star size={13} fill="currentColor"/> {item.score || "暂无"}</span><button onClick={()=>onAdd(item)}><Plus size={16}/> 加入想看</button></div></article> }
+function SearchCard({item,added,onAdd}:{item:Anime,added:boolean,onAdd:(x:Anime)=>void}) { return <article className="search-card"><img src={item.image || "/placeholder.svg"} alt=""/><div><h3>{item.name_cn || item.name}</h3><p>{item.name}</p><span>{item.eps || "?"} 集 · <Star size={13} fill="currentColor"/> {item.score || "暂无"}</span><button className={added?"added":""} disabled={added} onClick={()=>onAdd(item)}>{added?<><Check size={16}/> 已在片库</>:<><Plus size={16}/> 加入想看</>}</button></div></article> }
 function Stat({icon,value,label}:{icon:React.ReactNode,value:string|number,label:string}) { return <div className="stat">{icon}<div><b>{value}</b><span>{label}</span></div></div> }
 function NavButton({active,icon,label,onClick}:{active:boolean,icon:React.ReactNode,label:string,onClick:()=>void}) { return <button className={active?"active":""} onClick={onClick}>{icon}<span>{label}</span></button> }
 function Empty({text}:{text:string}) { return <div className="empty"><Heart/><p>{text}</p></div> }

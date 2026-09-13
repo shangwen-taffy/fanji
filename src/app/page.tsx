@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BookOpen, Check, ChevronRight, Clock3, Compass, Heart, Library, Loader2, LogOut, Minus, Plus, Search, Sparkles, Star, UserRound, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, ChevronRight, Clock3, Compass, Heart, Library, Loader2, LogOut, Minus, Plus, Search, Sparkles, Star, Trash2, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Status = "wish" | "watching" | "done" | "paused" | "dropped";
@@ -85,6 +85,22 @@ export default function Home() {
     window.setTimeout(() => setNotice(""), 3500);
   }
 
+  async function deleteRecord(item: RecordItem) {
+    if (!window.confirm(`确定从片库删除《${item.name_cn || item.name}》吗？`)) return;
+    if (supabase && userEmail) {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase.from("user_anime").delete().eq("user_id", auth.user?.id).eq("anime_id", item.id);
+      if (error) {
+        setNotice(`删除失败：${error.message}`);
+        return;
+      }
+    }
+    setRecords((old) => old.filter((record) => record.id !== item.id));
+    setSelected(null);
+    setNotice("已从片库删除");
+    window.setTimeout(() => setNotice(""), 3500);
+  }
+
   async function login() {
     if (!supabase) return setNotice("请先按 README 配置 Supabase 环境变量");
     if (!email.includes("@")) return setNotice("请输入有效邮箱");
@@ -141,7 +157,7 @@ export default function Home() {
 
       <nav className="bottom-nav"><NavButton active={tab==="home"} icon={<BookOpen/>} label="首页" onClick={()=>setTab("home")}/><NavButton active={tab==="discover"} icon={<Compass/>} label="发现" onClick={()=>setTab("discover")}/><NavButton active={tab==="library"} icon={<Library/>} label="片库" onClick={()=>setTab("library")}/><NavButton active={tab==="profile"} icon={<UserRound/>} label="我的" onClick={()=>setTab("profile")}/></nav>
 
-      {selected && <div className="modal-backdrop" onClick={()=>setSelected(null)}><div className="modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setSelected(null)}><X/></button><img src={selected.image || "/placeholder.svg"} alt=""/><div className="modal-content"><p className="eyebrow">EDIT RECORD</p><h2>{selected.name_cn || selected.name}</h2><p className="muted">{selected.name}</p><label>观看状态</label><div className="status-pills">{(Object.keys(statusMeta) as Status[]).map(s=><button key={s} className={selected.status===s?"chosen":""} onClick={()=>saveRecord({...selected,status:s})}>{statusMeta[s].label}</button>)}</div><label>观看进度</label><div className="counter"><button onClick={()=>saveRecord({...selected,progress:Math.max(0,selected.progress-1)})}><Minus/></button><b>{selected.progress} <small>/ {selected.eps || "?"} 集</small></b><button onClick={()=>saveRecord({...selected,progress:Math.min(selected.eps||999,selected.progress+1)})}><Plus/></button></div><label>我的评分</label><div className="rating">{[1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} className={selected.rating>=n?"lit":""} onClick={()=>saveRecord({...selected,rating:n})}>{n}</button>)}</div><button className="save-close" onClick={()=>setSelected(null)}><Check size={17}/> 保存并关闭</button></div></div></div>}
+      {selected && <div className="modal-backdrop" onClick={()=>setSelected(null)}><div className="modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setSelected(null)}><X/></button><img src={selected.image || "/placeholder.svg"} alt=""/><div className="modal-content"><p className="eyebrow">EDIT RECORD</p><h2>{selected.name_cn || selected.name}</h2><p className="muted">{selected.name}</p><label>观看状态</label><div className="status-pills">{(Object.keys(statusMeta) as Status[]).map(s=><button key={s} className={selected.status===s?"chosen":""} onClick={()=>saveRecord({...selected,status:s})}>{statusMeta[s].label}</button>)}</div><label>观看进度</label><div className="counter"><button onClick={()=>saveRecord({...selected,progress:Math.max(0,selected.progress-1)})}><Minus/></button><b>{selected.progress} <small>/ {selected.eps || "?"} 集</small></b><button onClick={()=>saveRecord({...selected,progress:Math.min(selected.eps||999,selected.progress+1)})}><Plus/></button></div><label>我的评分</label><div className="rating">{[1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} className={selected.rating>=n?"lit":""} onClick={()=>saveRecord({...selected,rating:n})}>{n}</button>)}</div><label htmlFor="anime-note">我的短评</label><textarea id="anime-note" className="note-input" maxLength={500} value={selected.note || ""} onChange={(event)=>setSelected({...selected,note:event.target.value})} placeholder="写下看完后的感受……"/><div className="modal-actions"><button className="delete-record" onClick={()=>deleteRecord(selected)}><Trash2 size={17}/> 删除</button><button className="save-close" onClick={async()=>{await saveRecord(selected);setSelected(null);setNotice("记录已保存");window.setTimeout(()=>setNotice(""),3500)}}><Check size={17}/> 保存并关闭</button></div></div></div></div>}
     </main>
   );
 }

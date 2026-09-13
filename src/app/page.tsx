@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Camera, Check, ChevronRight, CircleHelp, Copy, FileText, Heart, Mail,
+  ArrowLeft, Camera, Check, ChevronRight, CircleHelp, Copy, FileText, Heart, Mail,
   Loader2, LogOut, Minus, Play, Plus, Search, Settings, ShieldCheck,
   Sparkles, Star, Trash2, UserRound, X,
 } from "lucide-react";
@@ -141,7 +141,7 @@ export default function Home() {
     </header>
 
     <section className="page four-page-content">
-      {tab === "search" && <SearchPage query={query} setQuery={setQuery} searchAnime={searchAnime} searching={searching} results={results} records={records} added={added} addFromSearch={addFromSearch} setSelected={setSelected}/>} 
+      {tab === "search" && <SearchPage query={query} setQuery={setQuery} searchAnime={searchAnime} searching={searching} results={results} clearResults={()=>setResults([])} records={records} added={added} addFromSearch={addFromSearch} setSelected={setSelected}/>} 
       {tab === "watching" && <CollectionPage eyebrow="WATCHING" title="正在看的故事" description={`${watching.length} 部动画正在陪你度过这段时间。`} items={watching} empty="还没有正在看的动画；从搜索页加入后改为“正看”吧。" setSelected={setSelected}/>} 
       {tab === "done" && <CollectionPage eyebrow="COMPLETED" title="看完的每一次心动" description={`已经看完 ${done.length} 部，共记录 ${done.reduce((sum,item)=>sum+item.progress,0)} 集。`} items={done} empty="看完一部动画后，它会收藏在这里。" setSelected={setSelected}/>} 
       {tab === "profile" && <ProfilePage userEmail={userEmail} email={email} setEmail={setEmail} login={login} supabase={supabase} displayName={displayName} setDisplayName={setDisplayName} saveProfile={saveProfile} avatarUrl={avatarUrl} setAvatarUrl={setAvatarUrl} stats={{all:records.length,pending:added.length,watching:watching.length,done:done.length,episodes:totalEpisodes}} showNotice={showNotice}/>} 
@@ -159,11 +159,11 @@ export default function Home() {
   </main>;
 }
 
-function SearchPage({query,setQuery,searchAnime,searching,results,records,added,addFromSearch,setSelected}:{query:string;setQuery:(x:string)=>void;searchAnime:()=>void;searching:boolean;results:Anime[];records:RecordItem[];added:RecordItem[];addFromSearch:(x:Anime)=>void;setSelected:(x:RecordItem)=>void}) {
+function SearchPage({query,setQuery,searchAnime,searching,results,clearResults,records,added,addFromSearch,setSelected}:{query:string;setQuery:(x:string)=>void;searchAnime:()=>void;searching:boolean;results:Anime[];clearResults:()=>void;records:RecordItem[];added:RecordItem[];addFromSearch:(x:Anime)=>void;setSelected:(x:RecordItem)=>void}) {
   return <>
     <div className="simple-head search-heading"><p className="eyebrow">DISCOVER</p><h1>找到下一部喜欢的番</h1><p>搜索动画资料，加入清单，再慢慢把故事看完。</p></div>
     <div className="main-search"><Search size={20}/><input value={query} onChange={(event)=>setQuery(event.target.value)} onKeyDown={(event)=>event.key === "Enter" && searchAnime()} placeholder="搜索番剧名称，例如：葬送的芙莉莲"/><button onClick={searchAnime}>{searching?<Loader2 className="spin" size={18}/>:"搜索"}</button></div>
-    {results.length > 0 && <><SectionTitle title="搜索结果" meta={`${results.length} 个结果`}/><div className="result-grid">{results.map(item=><SearchCard key={item.id} item={item} added={records.some(record=>record.id===item.id)} onAdd={addFromSearch}/>)}</div></>}
+    {results.length > 0 && <><div className="search-results-heading"><SectionTitle title="搜索结果" meta={`${results.length} 个结果`}/><button className="search-back-button" onClick={clearResults}><ArrowLeft size={17}/>返回</button></div><div className="result-grid">{results.map(item=><SearchCard key={item.id} item={item} added={records.some(record=>record.id===item.id)} onAdd={addFromSearch}/>)}</div></>}
     {!results.length && !searching && <div className="discovery-blank"><div><Sparkles/><h2>从一部动画开始</h2><p>搜索结果会显示封面、集数和社区评分。</p></div></div>}
     {added.length > 0 && <><SectionTitle title="待确认" meta={`${added.length} 部动画`}/><div className="library-grid">{added.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div></>}
   </>;

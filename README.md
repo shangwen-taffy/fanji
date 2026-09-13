@@ -10,6 +10,15 @@
 4. 在 Authentication → URL Configuration 中，将 Site URL 暂设为 `http://localhost:3000`。
 5. 运行 `npm run dev`，打开 `http://localhost:3000`。
 
+## 邮箱验证码登录
+
+在 Supabase Dashboard 打开 Authentication → Email Templates：
+
+1. 分别编辑 `Confirm signup` 和 `Magic Link` 模板。
+2. 删除模板里的 `{{ .ConfirmationURL }}` 登录链接。
+3. 在邮件正文中加入验证码，例如：`<h2>{{ .Token }}</h2><p>这是你的尚文番迹登录验证码。</p>`。
+4. 保存两个模板。新用户和已有用户之后都会收到一次性验证码，在应用内输入即可登录。
+
 没有环境变量时，应用会以演示模式打开；此时更改只在当前页面有效。
 
 ## 部署到 Vercel

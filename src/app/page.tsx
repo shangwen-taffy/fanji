@@ -32,6 +32,9 @@ export default function Home() {
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<RecordItem | null>(null);
   const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("番剧旅行者");
@@ -122,8 +125,25 @@ export default function Home() {
   async function login() {
     if (!supabase) return showNotice("尚未配置Supabase");
     if (!email.includes("@")) return showNotice("请输入有效邮箱");
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
-    showNotice(error ? "登录邮件发送过于频繁，请稍后再试" : "登录链接已发送，请检查邮箱");
+    setAuthBusy(true);
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    setAuthBusy(false);
+    if (error) return showNotice(error.message.toLowerCase().includes("rate limit") ? "验证码发送过于频繁，请稍后再试" : `验证码发送失败：${error.message}`);
+    setCodeSent(true);
+    setOtp("");
+    showNotice("六位验证码已发送，请检查邮箱");
+  }
+
+  async function verifyCode() {
+    if (!supabase) return showNotice("尚未配置Supabase");
+    if (!/^\d{6}$/.test(otp)) return showNotice("请输入邮件中的六位验证码");
+    setAuthBusy(true);
+    const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" });
+    setAuthBusy(false);
+    if (error) return showNotice(error.message.toLowerCase().includes("expired") ? "验证码已失效，请重新发送" : "验证码错误，请检查后重试");
+    setCodeSent(false);
+    setOtp("");
+    showNotice("登录成功，正在同步你的片库");
   }
 
   async function saveProfile() {
@@ -147,7 +167,7 @@ export default function Home() {
       {tab === "search" && <SearchPage query={query} setQuery={setQuery} searchAnime={searchAnime} searching={searching} results={results} clearResults={()=>setResults([])} records={records} added={added} addFromSearch={addFromSearch} setSelected={setSelected}/>} 
       {tab === "watching" && <CollectionPage eyebrow="WATCHING" title="正在看的故事" description={`${watching.length} 部动画正在陪你度过这段时间。`} items={watching} empty="还没有正在看的动画；从搜索页加入后改为“正看”吧。" setSelected={setSelected}/>} 
       {tab === "done" && <CollectionPage eyebrow="COMPLETED" title="看完的每一次心动" description={`已经看完 ${done.length} 部，共记录 ${done.reduce((sum,item)=>sum+item.progress,0)} 集。`} items={done} empty="看完一部动画后，它会收藏在这里。" setSelected={setSelected}/>} 
-      {tab === "profile" && <ProfilePage userEmail={userEmail} email={email} setEmail={setEmail} login={login} supabase={supabase} displayName={displayName} setDisplayName={setDisplayName} saveProfile={saveProfile} avatarUrl={avatarUrl} setAvatarUrl={setAvatarUrl} theme={theme} setTheme={setTheme} stats={{all:records.length,pending:added.length,watching:watching.length,done:done.length,episodes:totalEpisodes}} showNotice={showNotice}/>} 
+      {tab === "profile" && <ProfilePage userEmail={userEmail} email={email} setEmail={setEmail} otp={otp} setOtp={setOtp} codeSent={codeSent} setCodeSent={setCodeSent} authBusy={authBusy} login={login} verifyCode={verifyCode} supabase={supabase} displayName={displayName} setDisplayName={setDisplayName} saveProfile={saveProfile} avatarUrl={avatarUrl} setAvatarUrl={setAvatarUrl} theme={theme} setTheme={setTheme} stats={{all:records.length,pending:added.length,watching:watching.length,done:done.length,episodes:totalEpisodes}} showNotice={showNotice}/>}
     </section>
 
     <nav className="bottom-nav persistent-nav">
@@ -176,7 +196,7 @@ function CollectionPage({eyebrow,title,description,items,empty,setSelected}:{eye
   return <><div className="simple-head"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div>{items.length?<div className="library-grid collection-grid">{items.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div>:<Empty text={empty}/>}</>;
 }
 
-function ProfilePage({userEmail,email,setEmail,login,supabase,displayName,setDisplayName,saveProfile,avatarUrl,setAvatarUrl,theme,setTheme,stats,showNotice}:{userEmail:string|null;email:string;setEmail:(x:string)=>void;login:()=>void;supabase:ReturnType<typeof createClient>;displayName:string;setDisplayName:(x:string)=>void;saveProfile:()=>void;avatarUrl:string;setAvatarUrl:(x:string)=>void;theme:string;setTheme:(x:string)=>void;stats:{all:number;pending:number;watching:number;done:number;episodes:number};showNotice:(x:string)=>void}) {
+function ProfilePage({userEmail,email,setEmail,otp,setOtp,codeSent,setCodeSent,authBusy,login,verifyCode,supabase,displayName,setDisplayName,saveProfile,avatarUrl,setAvatarUrl,theme,setTheme,stats,showNotice}:{userEmail:string|null;email:string;setEmail:(x:string)=>void;otp:string;setOtp:(x:string)=>void;codeSent:boolean;setCodeSent:(x:boolean)=>void;authBusy:boolean;login:()=>void;verifyCode:()=>void;supabase:ReturnType<typeof createClient>;displayName:string;setDisplayName:(x:string)=>void;saveProfile:()=>void;avatarUrl:string;setAvatarUrl:(x:string)=>void;theme:string;setTheme:(x:string)=>void;stats:{all:number;pending:number;watching:number;done:number;episodes:number};showNotice:(x:string)=>void}) {
   const [contactOpen,setContactOpen]=useState(false);
   const [panel,setPanel]=useState<"settings"|"terms"|"help"|null>(null);
   const [uploadingAvatar,setUploadingAvatar]=useState(false);
@@ -185,7 +205,7 @@ function ProfilePage({userEmail,email,setEmail,login,supabase,displayName,setDis
     localStorage.setItem("fanji-theme",next);
     showNotice("外观设置已保存");
   }
-  if (!userEmail) return <div className="profile-card"><div className="profile-icon"><UserRound size={30}/></div><p className="eyebrow">CLOUD SYNC</p><h1>登录尚文番迹</h1><p>使用邮箱魔法链接登录，在不同设备同步片库。</p><div className="login-row"><input type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="你的邮箱"/><button onClick={login}>发送登录链接</button></div></div>;
+  if (!userEmail) return <div className="profile-card"><div className="profile-icon"><UserRound size={30}/></div><p className="eyebrow">CLOUD SYNC</p><h1>登录尚文番迹</h1><p>{codeSent ? <>验证码已发送至 <b>{email}</b></> : "使用邮箱验证码登录，在不同设备同步片库。"}</p>{codeSent ? <><div className="login-row otp-row"><input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={event=>setOtp(event.target.value.replace(/\D/g,"").slice(0,6))} onKeyDown={event=>event.key === "Enter" && verifyCode()} placeholder="输入六位验证码"/><button disabled={authBusy} onClick={verifyCode}>{authBusy?<Loader2 className="spin" size={18}/>:"确认登录"}</button></div><div className="auth-links"><button disabled={authBusy} onClick={login}>重新发送验证码</button><button onClick={()=>{setCodeSent(false);setOtp("")}}>更换邮箱</button></div></> : <div className="login-row"><input type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} onKeyDown={event=>event.key === "Enter" && login()} placeholder="你的邮箱"/><button disabled={authBusy} onClick={login}>{authBusy?<Loader2 className="spin" size={18}/>:"发送验证码"}</button></div>}<small className="auth-tip">验证码仅用于登录，我们不会保存你的邮箱密码。</small></div>;
   const initial = (displayName || userEmail)[0]?.toUpperCase();
   async function uploadAvatar(file?:File) {
     if (!file || !supabase) return;

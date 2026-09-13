@@ -138,7 +138,6 @@ export default function Home() {
     <header className="topbar compact-topbar">
       <button className="brand" onClick={() => setTab("search")}><span className="brand-mark"><Sparkles size={20}/></span><span>番迹<small>把热爱留在时间里</small></span></button>
       <div className="page-context">{tab === "search" ? "发现动画" : tab === "watching" ? "正在观看" : tab === "done" ? "看完收藏" : "个人中心"}</div>
-      <button className="avatar" onClick={() => setTab("profile")}>{avatarUrl?<img src={avatarUrl} alt="我的头像"/>:<UserRound size={19}/>}</button>
     </header>
 
     <section className="page four-page-content">

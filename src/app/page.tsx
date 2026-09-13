@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Check, ChevronRight, CircleHelp, Copy, FileText, Heart, Mail,
+  Camera, Check, ChevronRight, CircleHelp, Copy, FileText, Heart, Mail,
   Loader2, LogOut, Minus, Play, Plus, Search, Settings, ShieldCheck,
   Sparkles, Star, Trash2, UserRound, X,
 } from "lucide-react";
@@ -33,6 +33,7 @@ export default function Home() {
   const [notice, setNotice] = useState("");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("番剧旅行者");
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   useEffect(() => {
     if (!supabase) return;
@@ -44,11 +45,13 @@ export default function Home() {
     supabase.auth.getUser().then(({ data }) => {
       setUserEmail(data.user?.email ?? null);
       setDisplayName(data.user?.user_metadata?.display_name || data.user?.email?.split("@")[0] || "番剧旅行者");
+      setAvatarUrl(data.user?.user_metadata?.avatar_url || "");
       if (data.user) cleanAddress();
     });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUserEmail(session?.user.email ?? null);
       setDisplayName(session?.user.user_metadata?.display_name || session?.user.email?.split("@")[0] || "番剧旅行者");
+      setAvatarUrl(session?.user.user_metadata?.avatar_url || "");
       if (session) cleanAddress();
     });
     return () => data.subscription.unsubscribe();
@@ -135,14 +138,14 @@ export default function Home() {
     <header className="topbar compact-topbar">
       <button className="brand" onClick={() => setTab("search")}><span className="brand-mark"><Sparkles size={20}/></span><span>番迹<small>把热爱留在时间里</small></span></button>
       <div className="page-context">{tab === "search" ? "发现动画" : tab === "watching" ? "正在观看" : tab === "done" ? "看完收藏" : "个人中心"}</div>
-      <button className="avatar" onClick={() => setTab("profile")}><UserRound size={19}/></button>
+      <button className="avatar" onClick={() => setTab("profile")}>{avatarUrl?<img src={avatarUrl} alt="我的头像"/>:<UserRound size={19}/>}</button>
     </header>
 
     <section className="page four-page-content">
       {tab === "search" && <SearchPage query={query} setQuery={setQuery} searchAnime={searchAnime} searching={searching} results={results} records={records} added={added} addFromSearch={addFromSearch} setSelected={setSelected}/>} 
       {tab === "watching" && <CollectionPage eyebrow="WATCHING" title="正在看的故事" description={`${watching.length} 部动画正在陪你度过这段时间。`} items={watching} empty="还没有正在看的动画；从搜索页加入后改为“正看”吧。" setSelected={setSelected}/>} 
       {tab === "done" && <CollectionPage eyebrow="COMPLETED" title="看完的每一次心动" description={`已经看完 ${done.length} 部，共记录 ${done.reduce((sum,item)=>sum+item.progress,0)} 集。`} items={done} empty="看完一部动画后，它会收藏在这里。" setSelected={setSelected}/>} 
-      {tab === "profile" && <ProfilePage userEmail={userEmail} email={email} setEmail={setEmail} login={login} supabase={supabase} displayName={displayName} setDisplayName={setDisplayName} saveProfile={saveProfile} stats={{all:records.length,pending:added.length,watching:watching.length,done:done.length,episodes:totalEpisodes}} showNotice={showNotice}/>} 
+      {tab === "profile" && <ProfilePage userEmail={userEmail} email={email} setEmail={setEmail} login={login} supabase={supabase} displayName={displayName} setDisplayName={setDisplayName} saveProfile={saveProfile} avatarUrl={avatarUrl} setAvatarUrl={setAvatarUrl} stats={{all:records.length,pending:added.length,watching:watching.length,done:done.length,episodes:totalEpisodes}} showNotice={showNotice}/>} 
     </section>
 
     <nav className="bottom-nav persistent-nav">
@@ -171,12 +174,31 @@ function CollectionPage({eyebrow,title,description,items,empty,setSelected}:{eye
   return <><div className="simple-head"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div>{items.length?<div className="library-grid collection-grid">{items.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div>:<Empty text={empty}/>}</>;
 }
 
-function ProfilePage({userEmail,email,setEmail,login,supabase,displayName,setDisplayName,saveProfile,stats,showNotice}:{userEmail:string|null;email:string;setEmail:(x:string)=>void;login:()=>void;supabase:ReturnType<typeof createClient>;displayName:string;setDisplayName:(x:string)=>void;saveProfile:()=>void;stats:{all:number;pending:number;watching:number;done:number;episodes:number};showNotice:(x:string)=>void}) {
+function ProfilePage({userEmail,email,setEmail,login,supabase,displayName,setDisplayName,saveProfile,avatarUrl,setAvatarUrl,stats,showNotice}:{userEmail:string|null;email:string;setEmail:(x:string)=>void;login:()=>void;supabase:ReturnType<typeof createClient>;displayName:string;setDisplayName:(x:string)=>void;saveProfile:()=>void;avatarUrl:string;setAvatarUrl:(x:string)=>void;stats:{all:number;pending:number;watching:number;done:number;episodes:number};showNotice:(x:string)=>void}) {
   const [contactOpen,setContactOpen]=useState(false);
+  const [uploadingAvatar,setUploadingAvatar]=useState(false);
   if (!userEmail) return <div className="profile-card"><div className="profile-icon"><UserRound size={30}/></div><p className="eyebrow">CLOUD SYNC</p><h1>登录你的番迹</h1><p>使用邮箱魔法链接登录，在不同设备同步片库。</p><div className="login-row"><input type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="你的邮箱"/><button onClick={login}>发送登录链接</button></div></div>;
   const initial = (displayName || userEmail)[0]?.toUpperCase();
+  async function uploadAvatar(file?:File) {
+    if (!file || !supabase) return;
+    if (!["image/jpeg","image/png","image/webp"].includes(file.type)) return showNotice("请选择JPG、PNG或WebP图片");
+    if (file.size > 2 * 1024 * 1024) return showNotice("头像不能超过2MB");
+    setUploadingAvatar(true);
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) { setUploadingAvatar(false); return showNotice("请先登录"); }
+    const path = `${auth.user.id}/avatar`;
+    const { error } = await supabase.storage.from("avatars").upload(path,file,{upsert:true,contentType:file.type,cacheControl:"3600"});
+    if (error) { setUploadingAvatar(false); return showNotice(`头像上传失败：${error.message}`); }
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    const publicUrl = `${data.publicUrl}?v=${Date.now()}`;
+    const { error:profileError } = await supabase.auth.updateUser({data:{avatar_url:publicUrl}});
+    setUploadingAvatar(false);
+    if (profileError) return showNotice("头像资料保存失败");
+    setAvatarUrl(publicUrl);
+    showNotice("头像已更新");
+  }
   return <div className="account-page">
-    <section className="account-hero"><div className="large-avatar">{initial}</div><div><p className="eyebrow">MY ANIME PROFILE</p><h1>{displayName}</h1><p>{userEmail}</p></div><button className="outline-button" onClick={()=>supabase?.auth.signOut()}><LogOut size={16}/>退出登录</button></section>
+    <section className="account-hero"><label className="avatar-upload" title="更换头像"><span className="large-avatar">{avatarUrl?<img src={avatarUrl} alt="个人头像"/>:initial}</span><span className="camera-badge">{uploadingAvatar?<Loader2 className="spin"/>:<Camera/>}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingAvatar} onChange={event=>uploadAvatar(event.target.files?.[0])}/></label><div><p className="eyebrow">MY ANIME PROFILE</p><h1>{displayName}</h1><p>{userEmail}</p><small className="avatar-tip">点击头像更换图片</small></div><button className="outline-button" onClick={()=>supabase?.auth.signOut()}><LogOut size={16}/>退出登录</button></section>
     <section className="profile-stats"><ProfileStat value={stats.all} label="全部收藏"/><ProfileStat value={stats.pending} label="待确认"/><ProfileStat value={stats.watching} label="正在看"/><ProfileStat value={stats.done} label="已看完"/><ProfileStat value={stats.episodes} label="观看集数"/></section>
     <div className="profile-columns"><section className="settings-card"><SectionTitle title="个人资料" meta="PROFILE"/><label>昵称</label><div className="profile-name-row"><input value={displayName} maxLength={24} onChange={event=>setDisplayName(event.target.value)}/><button onClick={saveProfile}>保存</button></div><label>登录邮箱</label><div className="readonly-field">{userEmail}<ShieldCheck size={17}/></div></section>
     <section className="settings-card"><SectionTitle title="设置与帮助" meta="SETTINGS"/><SettingRow icon={<Mail/>} title="联系我们" subtitle="联系番迹开发者" onClick={()=>setContactOpen(true)}/><SettingRow icon={<Settings/>} title="应用设置" subtitle="主题、语言与数据显示" onClick={()=>showNotice("应用设置正在建设中")}/><SettingRow icon={<FileText/>} title="用户条款与隐私" subtitle="查看服务规则和隐私说明" onClick={()=>showNotice("条款页面将在正式发布前补齐")}/><SettingRow icon={<CircleHelp/>} title="帮助与反馈" subtitle="使用问题与意见反馈" onClick={()=>showNotice("反馈入口正在建设中")}/></section></div>

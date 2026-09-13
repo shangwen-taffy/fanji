@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Bell, Check, ChevronRight, CircleHelp, FileText, Heart,
+  Check, ChevronRight, CircleHelp, Copy, FileText, Heart, Mail,
   Loader2, LogOut, Minus, Play, Plus, Search, Settings, ShieldCheck,
   Sparkles, Star, Trash2, UserRound, X,
 } from "lucide-react";
@@ -13,6 +13,7 @@ type Status = "wish" | "watching" | "done" | "paused" | "dropped";
 type Tab = "search" | "watching" | "done" | "profile";
 type Anime = { id: number; name: string; name_cn?: string; image?: string; eps?: number; score?: number; summary?: string };
 type RecordItem = Anime & { status: Status; progress: number; rating: number; note?: string };
+const CONTACT_EMAIL = "shaidurmxnxboeiei63929999@gmail.com";
 
 const statusMeta: Record<Status, { label: string; color: string }> = {
   wish: { label: "待确认", color: "#818cf8" }, watching: { label: "正看", color: "#22c55e" },
@@ -171,14 +172,16 @@ function CollectionPage({eyebrow,title,description,items,empty,setSelected}:{eye
 }
 
 function ProfilePage({userEmail,email,setEmail,login,supabase,displayName,setDisplayName,saveProfile,stats,showNotice}:{userEmail:string|null;email:string;setEmail:(x:string)=>void;login:()=>void;supabase:ReturnType<typeof createClient>;displayName:string;setDisplayName:(x:string)=>void;saveProfile:()=>void;stats:{all:number;pending:number;watching:number;done:number;episodes:number};showNotice:(x:string)=>void}) {
+  const [contactOpen,setContactOpen]=useState(false);
   if (!userEmail) return <div className="profile-card"><div className="profile-icon"><UserRound size={30}/></div><p className="eyebrow">CLOUD SYNC</p><h1>登录你的番迹</h1><p>使用邮箱魔法链接登录，在不同设备同步片库。</p><div className="login-row"><input type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="你的邮箱"/><button onClick={login}>发送登录链接</button></div></div>;
   const initial = (displayName || userEmail)[0]?.toUpperCase();
   return <div className="account-page">
     <section className="account-hero"><div className="large-avatar">{initial}</div><div><p className="eyebrow">MY ANIME PROFILE</p><h1>{displayName}</h1><p>{userEmail}</p></div><button className="outline-button" onClick={()=>supabase?.auth.signOut()}><LogOut size={16}/>退出登录</button></section>
     <section className="profile-stats"><ProfileStat value={stats.all} label="全部收藏"/><ProfileStat value={stats.pending} label="待确认"/><ProfileStat value={stats.watching} label="正在看"/><ProfileStat value={stats.done} label="已看完"/><ProfileStat value={stats.episodes} label="观看集数"/></section>
     <div className="profile-columns"><section className="settings-card"><SectionTitle title="个人资料" meta="PROFILE"/><label>昵称</label><div className="profile-name-row"><input value={displayName} maxLength={24} onChange={event=>setDisplayName(event.target.value)}/><button onClick={saveProfile}>保存</button></div><label>登录邮箱</label><div className="readonly-field">{userEmail}<ShieldCheck size={17}/></div></section>
-    <section className="settings-card"><SectionTitle title="设置与帮助" meta="SETTINGS"/><SettingRow icon={<Bell/>} title="消息提醒" subtitle="新番与观看进度提醒" onClick={()=>showNotice("消息提醒功能将在后续开放")}/><SettingRow icon={<Settings/>} title="应用设置" subtitle="主题、语言与数据显示" onClick={()=>showNotice("应用设置正在建设中")}/><SettingRow icon={<FileText/>} title="用户条款与隐私" subtitle="查看服务规则和隐私说明" onClick={()=>showNotice("条款页面将在正式发布前补齐")}/><SettingRow icon={<CircleHelp/>} title="帮助与反馈" subtitle="使用问题与意见反馈" onClick={()=>showNotice("反馈入口正在建设中")}/></section></div>
+    <section className="settings-card"><SectionTitle title="设置与帮助" meta="SETTINGS"/><SettingRow icon={<Mail/>} title="联系我们" subtitle="联系番迹开发者" onClick={()=>setContactOpen(true)}/><SettingRow icon={<Settings/>} title="应用设置" subtitle="主题、语言与数据显示" onClick={()=>showNotice("应用设置正在建设中")}/><SettingRow icon={<FileText/>} title="用户条款与隐私" subtitle="查看服务规则和隐私说明" onClick={()=>showNotice("条款页面将在正式发布前补齐")}/><SettingRow icon={<CircleHelp/>} title="帮助与反馈" subtitle="使用问题与意见反馈" onClick={()=>showNotice("反馈入口正在建设中")}/></section></div>
     <p className="version">番迹 Fanji · Version 0.1.0</p>
+    {contactOpen && <div className="contact-backdrop" onClick={()=>setContactOpen(false)}><section className="contact-dialog" onClick={event=>event.stopPropagation()}><button className="close" onClick={()=>setContactOpen(false)}><X/></button><div className="contact-icon"><Mail/></div><p className="eyebrow">CONTACT US</p><h2>联系我们</h2><p>如果你有建议、遇到问题，欢迎通过邮箱联系。</p><a className="contact-email" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a><div className="contact-actions"><button onClick={async()=>{await navigator.clipboard.writeText(CONTACT_EMAIL);showNotice("联系邮箱已复制")}}><Copy size={16}/>复制邮箱</button><a href={`mailto:${CONTACT_EMAIL}`}><Mail size={16}/>发送邮件</a></div></section></div>}
   </div>;
 }
 

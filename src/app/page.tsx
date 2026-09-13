@@ -15,7 +15,7 @@ type Anime = { id: number; name: string; name_cn?: string; image?: string; eps?:
 type RecordItem = Anime & { status: Status; progress: number; rating: number; note?: string };
 
 const statusMeta: Record<Status, { label: string; color: string }> = {
-  wish: { label: "已添加", color: "#818cf8" }, watching: { label: "正看", color: "#22c55e" },
+  wish: { label: "待确认", color: "#818cf8" }, watching: { label: "正看", color: "#22c55e" },
   done: { label: "看完", color: "#f59e0b" }, paused: { label: "搁置", color: "#94a3b8" },
   dropped: { label: "弃番", color: "#f87171" },
 };
@@ -129,8 +129,6 @@ export default function Home() {
   const done = records.filter((item) => item.status === "done");
   const added = records.filter((item) => !["watching", "done"].includes(item.status));
   const totalEpisodes = records.reduce((sum, item) => sum + item.progress, 0);
-  const rated = records.filter((item) => item.rating > 0);
-  const average = rated.length ? (rated.reduce((sum, item) => sum + item.rating, 0) / rated.length).toFixed(1) : "—";
 
   return <main className="app-shell four-page-app">
     <header className="topbar compact-topbar">
@@ -143,7 +141,7 @@ export default function Home() {
       {tab === "search" && <SearchPage query={query} setQuery={setQuery} searchAnime={searchAnime} searching={searching} results={results} records={records} added={added} addFromSearch={addFromSearch} setSelected={setSelected}/>} 
       {tab === "watching" && <CollectionPage eyebrow="WATCHING" title="正在看的故事" description={`${watching.length} 部动画正在陪你度过这段时间。`} items={watching} empty="还没有正在看的动画；从搜索页加入后改为“正看”吧。" setSelected={setSelected}/>} 
       {tab === "done" && <CollectionPage eyebrow="COMPLETED" title="看完的每一次心动" description={`已经看完 ${done.length} 部，共记录 ${done.reduce((sum,item)=>sum+item.progress,0)} 集。`} items={done} empty="看完一部动画后，它会收藏在这里。" setSelected={setSelected}/>} 
-      {tab === "profile" && <ProfilePage userEmail={userEmail} email={email} setEmail={setEmail} login={login} supabase={supabase} displayName={displayName} setDisplayName={setDisplayName} saveProfile={saveProfile} stats={{all:records.length,watching:watching.length,done:done.length,episodes:totalEpisodes,average}} showNotice={showNotice}/>} 
+      {tab === "profile" && <ProfilePage userEmail={userEmail} email={email} setEmail={setEmail} login={login} supabase={supabase} displayName={displayName} setDisplayName={setDisplayName} saveProfile={saveProfile} stats={{all:records.length,pending:added.length,watching:watching.length,done:done.length,episodes:totalEpisodes}} showNotice={showNotice}/>} 
     </section>
 
     <nav className="bottom-nav persistent-nav">
@@ -164,7 +162,7 @@ function SearchPage({query,setQuery,searchAnime,searching,results,records,added,
     <div className="main-search"><Search size={20}/><input value={query} onChange={(event)=>setQuery(event.target.value)} onKeyDown={(event)=>event.key === "Enter" && searchAnime()} placeholder="搜索番剧名称，例如：葬送的芙莉莲"/><button onClick={searchAnime}>{searching?<Loader2 className="spin" size={18}/>:"搜索"}</button></div>
     {results.length > 0 && <><SectionTitle title="搜索结果" meta={`${results.length} 个结果`}/><div className="result-grid">{results.map(item=><SearchCard key={item.id} item={item} added={records.some(record=>record.id===item.id)} onAdd={addFromSearch}/>)}</div></>}
     {!results.length && !searching && <div className="discovery-blank"><div><Sparkles/><h2>从一部动画开始</h2><p>搜索结果会显示封面、集数和社区评分。</p></div></div>}
-    {added.length > 0 && <><SectionTitle title="已添加" meta={`${added.length} 部动画`}/><div className="library-grid">{added.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div></>}
+    {added.length > 0 && <><SectionTitle title="待确认" meta={`${added.length} 部动画`}/><div className="library-grid">{added.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div></>}
   </>;
 }
 
@@ -172,12 +170,12 @@ function CollectionPage({eyebrow,title,description,items,empty,setSelected}:{eye
   return <><div className="simple-head"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div>{items.length?<div className="library-grid collection-grid">{items.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div>:<Empty text={empty}/>}</>;
 }
 
-function ProfilePage({userEmail,email,setEmail,login,supabase,displayName,setDisplayName,saveProfile,stats,showNotice}:{userEmail:string|null;email:string;setEmail:(x:string)=>void;login:()=>void;supabase:ReturnType<typeof createClient>;displayName:string;setDisplayName:(x:string)=>void;saveProfile:()=>void;stats:{all:number;watching:number;done:number;episodes:number;average:string};showNotice:(x:string)=>void}) {
+function ProfilePage({userEmail,email,setEmail,login,supabase,displayName,setDisplayName,saveProfile,stats,showNotice}:{userEmail:string|null;email:string;setEmail:(x:string)=>void;login:()=>void;supabase:ReturnType<typeof createClient>;displayName:string;setDisplayName:(x:string)=>void;saveProfile:()=>void;stats:{all:number;pending:number;watching:number;done:number;episodes:number};showNotice:(x:string)=>void}) {
   if (!userEmail) return <div className="profile-card"><div className="profile-icon"><UserRound size={30}/></div><p className="eyebrow">CLOUD SYNC</p><h1>登录你的番迹</h1><p>使用邮箱魔法链接登录，在不同设备同步片库。</p><div className="login-row"><input type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="你的邮箱"/><button onClick={login}>发送登录链接</button></div></div>;
   const initial = (displayName || userEmail)[0]?.toUpperCase();
   return <div className="account-page">
     <section className="account-hero"><div className="large-avatar">{initial}</div><div><p className="eyebrow">MY ANIME PROFILE</p><h1>{displayName}</h1><p>{userEmail}</p></div><button className="outline-button" onClick={()=>supabase?.auth.signOut()}><LogOut size={16}/>退出登录</button></section>
-    <section className="profile-stats"><ProfileStat value={stats.all} label="全部收藏"/><ProfileStat value={stats.watching} label="正在看"/><ProfileStat value={stats.done} label="已看完"/><ProfileStat value={stats.episodes} label="观看集数"/><ProfileStat value={stats.average} label="平均评分"/></section>
+    <section className="profile-stats"><ProfileStat value={stats.all} label="全部收藏"/><ProfileStat value={stats.pending} label="待确认"/><ProfileStat value={stats.watching} label="正在看"/><ProfileStat value={stats.done} label="已看完"/><ProfileStat value={stats.episodes} label="观看集数"/></section>
     <div className="profile-columns"><section className="settings-card"><SectionTitle title="个人资料" meta="PROFILE"/><label>昵称</label><div className="profile-name-row"><input value={displayName} maxLength={24} onChange={event=>setDisplayName(event.target.value)}/><button onClick={saveProfile}>保存</button></div><label>登录邮箱</label><div className="readonly-field">{userEmail}<ShieldCheck size={17}/></div></section>
     <section className="settings-card"><SectionTitle title="设置与帮助" meta="SETTINGS"/><SettingRow icon={<Bell/>} title="消息提醒" subtitle="新番与观看进度提醒" onClick={()=>showNotice("消息提醒功能将在后续开放")}/><SettingRow icon={<Settings/>} title="应用设置" subtitle="主题、语言与数据显示" onClick={()=>showNotice("应用设置正在建设中")}/><SettingRow icon={<FileText/>} title="用户条款与隐私" subtitle="查看服务规则和隐私说明" onClick={()=>showNotice("条款页面将在正式发布前补齐")}/><SettingRow icon={<CircleHelp/>} title="帮助与反馈" subtitle="使用问题与意见反馈" onClick={()=>showNotice("反馈入口正在建设中")}/></section></div>
     <p className="version">番迹 Fanji · Version 0.1.0</p>

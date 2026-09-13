@@ -1,4 +1,4 @@
-# 番迹
+# 尚文番迹
 
 手机优先的云端追番记录 PWA，使用 Next.js、Vercel、Supabase 与 Bangumi API。
 

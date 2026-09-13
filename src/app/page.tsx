@@ -3,10 +3,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft, Camera, Check, ChevronRight, CircleHelp, Copy, FileText, Heart, Mail,
-  Loader2, LogOut, Minus, Play, Plus, Search, Settings, ShieldCheck,
-  Sparkles, Star, Trash2, UserRound, X,
-} from "lucide-react";
+  ArrowLeft, Camera, Check, CaretRight as ChevronRight, Question as CircleHelp,
+  Copy, FileText, Heart, Envelope as Mail, CircleNotch as Loader2,
+  SignOut as LogOut, Minus, PawPrint, Play, Plus, MagnifyingGlass as Search,
+  Gear as Settings, ShieldCheck, Star, Trash as Trash2,
+  User as UserRound, X,
+} from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 
 type Status = "wish" | "watching" | "done" | "paused" | "dropped";
@@ -16,9 +18,9 @@ type RecordItem = Anime & { status: Status; progress: number; rating: number; no
 const CONTACT_EMAIL = "shaidurmxnxboeiei63929999@gmail.com";
 
 const statusMeta: Record<Status, { label: string; color: string }> = {
-  wish: { label: "待确认", color: "#818cf8" }, watching: { label: "正看", color: "#22c55e" },
-  done: { label: "看完", color: "#f59e0b" }, paused: { label: "搁置", color: "#94a3b8" },
-  dropped: { label: "弃番", color: "#f87171" },
+  wish: { label: "待确认", color: "#d79986" }, watching: { label: "正看", color: "#a77761" },
+  done: { label: "看完", color: "#755046" }, paused: { label: "搁置", color: "#a79a91" },
+  dropped: { label: "弃番", color: "#c27c76" },
 };
 
 export default function Home() {
@@ -137,7 +139,7 @@ export default function Home() {
 
   return <main className={`app-shell four-page-app theme-${theme}`}>
     <header className="topbar compact-topbar">
-      <button className="brand" onClick={() => setTab("search")}><span className="brand-mark"><Sparkles size={20}/></span><span>番迹<small>把热爱留在时间里</small></span></button>
+      <button className="brand" onClick={() => setTab("search")}><span className="brand-mark"><PawPrint size={24} weight="fill"/></span><span>尚文番迹<small>把热爱留在时间里</small></span></button>
       <div className="page-context">{tab === "search" ? "发现动画" : tab === "watching" ? "正在观看" : tab === "done" ? "看完收藏" : "个人中心"}</div>
     </header>
 
@@ -162,10 +164,10 @@ export default function Home() {
 
 function SearchPage({query,setQuery,searchAnime,searching,results,clearResults,records,added,addFromSearch,setSelected}:{query:string;setQuery:(x:string)=>void;searchAnime:()=>void;searching:boolean;results:Anime[];clearResults:()=>void;records:RecordItem[];added:RecordItem[];addFromSearch:(x:Anime)=>void;setSelected:(x:RecordItem)=>void}) {
   return <>
-    <div className="simple-head search-heading"><p className="eyebrow">DISCOVER</p><h1>找到下一部喜欢的番</h1><p>搜索动画资料，加入清单，再慢慢把故事看完。</p></div>
+    <section className="anime-hero"><img src="/art/search-hero.png" alt="樱花窗前与猫狗相伴的少女"/><div className="hero-copy"><p className="eyebrow">SHANGWEN ANIME JOURNEY</p><h1>找到下一部<br/>喜欢的番</h1><p>搜索动画资料，加入清单，再慢慢把故事看完。</p></div></section>
     <div className="main-search"><Search size={20}/><input value={query} onChange={(event)=>setQuery(event.target.value)} onKeyDown={(event)=>event.key === "Enter" && searchAnime()} placeholder="搜索番剧名称，例如：葬送的芙莉莲"/><button onClick={searchAnime}>{searching?<Loader2 className="spin" size={18}/>:"搜索"}</button></div>
     {results.length > 0 && <><div className="search-results-heading"><SectionTitle title="搜索结果" meta={`${results.length} 个结果`}/><button className="search-back-button" onClick={clearResults}><ArrowLeft size={17}/>返回</button></div><div className="result-grid">{results.map(item=><SearchCard key={item.id} item={item} added={records.some(record=>record.id===item.id)} onAdd={addFromSearch}/>)}</div></>}
-    {!results.length && !searching && <div className="discovery-blank"><div><Sparkles/><h2>从一部动画开始</h2><p>搜索结果会显示封面、集数和社区评分。</p></div></div>}
+    {!results.length && !searching && <div className="discovery-blank"><img src="/art/empty-companions.png" alt="猫咪和小狗守着番剧手账"/><div><p className="eyebrow">A NEW STORY AWAITS</p><h2>从一部动画开始</h2><p>搜索结果会显示封面、集数和社区评分。</p></div></div>}
     {added.length > 0 && <><SectionTitle title="待确认" meta={`${added.length} 部动画`}/><div className="library-grid">{added.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div></>}
   </>;
 }
@@ -183,7 +185,7 @@ function ProfilePage({userEmail,email,setEmail,login,supabase,displayName,setDis
     localStorage.setItem("fanji-theme",next);
     showNotice("外观设置已保存");
   }
-  if (!userEmail) return <div className="profile-card"><div className="profile-icon"><UserRound size={30}/></div><p className="eyebrow">CLOUD SYNC</p><h1>登录你的番迹</h1><p>使用邮箱魔法链接登录，在不同设备同步片库。</p><div className="login-row"><input type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="你的邮箱"/><button onClick={login}>发送登录链接</button></div></div>;
+  if (!userEmail) return <div className="profile-card"><div className="profile-icon"><UserRound size={30}/></div><p className="eyebrow">CLOUD SYNC</p><h1>登录尚文番迹</h1><p>使用邮箱魔法链接登录，在不同设备同步片库。</p><div className="login-row"><input type="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="你的邮箱"/><button onClick={login}>发送登录链接</button></div></div>;
   const initial = (displayName || userEmail)[0]?.toUpperCase();
   async function uploadAvatar(file?:File) {
     if (!file || !supabase) return;
@@ -204,13 +206,13 @@ function ProfilePage({userEmail,email,setEmail,login,supabase,displayName,setDis
     showNotice("头像已更新");
   }
   return <div className="account-page">
-    <section className="account-hero"><label className="avatar-upload" title="更换头像"><span className="large-avatar">{avatarUrl?<img src={avatarUrl} alt="个人头像"/>:initial}</span><span className="camera-badge">{uploadingAvatar?<Loader2 className="spin"/>:<Camera/>}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingAvatar} onChange={event=>uploadAvatar(event.target.files?.[0])}/></label><div><p className="eyebrow">MY ANIME PROFILE</p><h1>{displayName}</h1><p>{userEmail}</p><small className="avatar-tip">点击头像更换图片</small></div><button className="outline-button" onClick={()=>supabase?.auth.signOut()}><LogOut size={16}/>退出登录</button></section>
+    <section className="account-hero"><img className="account-art" src="/art/profile-spring.png" alt="樱花小径上的少女与宠物"/><div className="account-content"><label className="avatar-upload" title="更换头像"><span className="large-avatar">{avatarUrl?<img src={avatarUrl} alt="个人头像"/>:initial}</span><span className="camera-badge">{uploadingAvatar?<Loader2 className="spin"/>:<Camera/>}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingAvatar} onChange={event=>uploadAvatar(event.target.files?.[0])}/></label><div><p className="eyebrow">MY ANIME PROFILE</p><h1>{displayName}</h1><p>{userEmail}</p><small className="avatar-tip">点击头像更换图片</small></div><button className="outline-button" onClick={()=>supabase?.auth.signOut()}><LogOut size={16}/>退出登录</button></div></section>
     <section className="profile-stats"><ProfileStat value={stats.all} label="全部收藏"/><ProfileStat value={stats.pending} label="待确认"/><ProfileStat value={stats.watching} label="正在看"/><ProfileStat value={stats.done} label="已看完"/><ProfileStat value={stats.episodes} label="观看集数"/></section>
     <div className="profile-columns"><section className="settings-card"><SectionTitle title="个人资料" meta="PROFILE"/><label>昵称</label><div className="profile-name-row"><input value={displayName} maxLength={24} onChange={event=>setDisplayName(event.target.value)}/><button onClick={saveProfile}>保存</button></div><label>登录邮箱</label><div className="readonly-field">{userEmail}<ShieldCheck size={17}/></div></section>
-    <section className="settings-card"><SectionTitle title="设置与帮助" meta="SETTINGS"/><SettingRow icon={<Mail/>} title="联系我们" subtitle="联系番迹开发者" onClick={()=>setContactOpen(true)}/><SettingRow icon={<Settings/>} title="应用设置" subtitle="主题、语言与数据显示" onClick={()=>setPanel("settings")}/><SettingRow icon={<FileText/>} title="用户条款与隐私" subtitle="查看服务规则和隐私说明" onClick={()=>setPanel("terms")}/><SettingRow icon={<CircleHelp/>} title="帮助与反馈" subtitle="使用问题与意见反馈" onClick={()=>setPanel("help")}/></section></div>
-    <p className="version">番迹 Fanji · Version 0.1.0</p>
+    <section className="settings-card"><SectionTitle title="设置与帮助" meta="SETTINGS"/><SettingRow icon={<Mail/>} title="联系我们" subtitle="联系尚文番迹开发者" onClick={()=>setContactOpen(true)}/><SettingRow icon={<Settings/>} title="应用设置" subtitle="主题、语言与数据显示" onClick={()=>setPanel("settings")}/><SettingRow icon={<FileText/>} title="用户条款与隐私" subtitle="查看服务规则和隐私说明" onClick={()=>setPanel("terms")}/><SettingRow icon={<CircleHelp/>} title="帮助与反馈" subtitle="使用问题与意见反馈" onClick={()=>setPanel("help")}/></section></div>
+    <p className="version">尚文番迹 · Version 0.2.0</p>
     {contactOpen && <div className="contact-backdrop" onClick={()=>setContactOpen(false)}><section className="contact-dialog" onClick={event=>event.stopPropagation()}><button className="close" onClick={()=>setContactOpen(false)}><X/></button><div className="contact-icon"><Mail/></div><p className="eyebrow">CONTACT US</p><h2>联系我们</h2><p>如果你有建议、遇到问题，欢迎通过邮箱联系。</p><a className="contact-email" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a><div className="contact-actions"><button onClick={async()=>{await navigator.clipboard.writeText(CONTACT_EMAIL);showNotice("联系邮箱已复制")}}><Copy size={16}/>复制邮箱</button><a href={`mailto:${CONTACT_EMAIL}`}><Mail size={16}/>发送邮件</a></div></section></div>}
-    {panel && <div className="contact-backdrop" onClick={()=>setPanel(null)}><section className="info-dialog" onClick={event=>event.stopPropagation()}><button className="close" onClick={()=>setPanel(null)}><X/></button>{panel==="settings"&&<><p className="eyebrow">APP SETTINGS</p><h2>应用设置</h2><div className="info-section"><h3>外观主题</h3><p>选择你喜欢的页面颜色，设置会保存在当前设备。</p><div className="theme-options">{[["light","明亮"],["soft","柔和"],["dark","深色"]].map(([value,label])=><button key={value} className={theme===value?"chosen":""} onClick={()=>changeTheme(value)}>{label}</button>)}</div></div><div className="info-section"><h3>语言</h3><div className="setting-value">简体中文 <span>当前版本</span></div></div><div className="info-section"><h3>数据同步</h3><p>番剧记录、昵称和头像通过你的登录账户同步；主题设置只保存在当前设备。</p></div></>}{panel==="terms"&&<><p className="eyebrow">TERMS & PRIVACY</p><h2>用户条款与隐私</h2><div className="legal-copy"><h3>服务说明</h3><p>番迹用于记录个人观看进度、评分和短评。请勿利用本服务上传违法、有害或侵犯他人权益的内容。</p><h3>账户与数据</h3><p>邮箱用于登录和识别账户；番剧记录、昵称及头像存储于 Supabase 云端。我们不会要求或保存你的邮箱密码。</p><h3>第三方数据</h3><p>动画资料来自第三方公开数据服务，名称、封面、集数和评分可能存在延迟或误差。</p><h3>隐私与安全</h3><p>每位用户只能访问自己的番剧记录。头像为公开链接，请不要上传包含敏感个人信息的图片。</p><h3>数据管理</h3><p>你可以在番剧详情中删除记录。如需处理账户或其他数据，请通过“联系我们”与开发者联系。</p><small>更新日期：2026年9月13日</small></div></>}{panel==="help"&&<><p className="eyebrow">HELP & FEEDBACK</p><h2>帮助与反馈</h2><div className="faq"><details open><summary>怎样添加一部番剧？</summary><p>进入“搜索”，输入番剧名称，点击“添加”。它会先进入“待确认”。</p></details><details><summary>怎样移到正看或看完？</summary><p>点击待确认中的番剧，在详情里选择“正看”或“看完”，然后保存。</p></details><details><summary>记录会不会丢失？</summary><p>登录后数据会保存到云端。更换设备时使用同一个邮箱登录即可同步。</p></details><details><summary>头像为什么上传失败？</summary><p>请上传不超过 2MB 的 JPG、PNG 或 WebP 图片，并确认网络连接正常。</p></details></div><button className="feedback-button" onClick={()=>{setPanel(null);setContactOpen(true)}}><Mail size={17}/>联系开发者反馈</button></>}</section></div>}
+    {panel && <div className="contact-backdrop" onClick={()=>setPanel(null)}><section className="info-dialog" onClick={event=>event.stopPropagation()}><button className="close" onClick={()=>setPanel(null)}><X/></button>{panel==="settings"&&<><p className="eyebrow">APP SETTINGS</p><h2>应用设置</h2><div className="info-section"><h3>外观主题</h3><p>选择你喜欢的页面颜色，设置会保存在当前设备。</p><div className="theme-options">{[["light","明亮"],["soft","柔和"],["dark","深色"]].map(([value,label])=><button key={value} className={theme===value?"chosen":""} onClick={()=>changeTheme(value)}>{label}</button>)}</div></div><div className="info-section"><h3>语言</h3><div className="setting-value">简体中文 <span>当前版本</span></div></div><div className="info-section"><h3>数据同步</h3><p>番剧记录、昵称和头像通过你的登录账户同步；主题设置只保存在当前设备。</p></div></>}{panel==="terms"&&<><p className="eyebrow">TERMS & PRIVACY</p><h2>用户条款与隐私</h2><div className="legal-copy"><h3>服务说明</h3><p>尚文番迹用于记录个人观看进度、评分和短评。请勿利用本服务上传违法、有害或侵犯他人权益的内容。</p><h3>账户与数据</h3><p>邮箱用于登录和识别账户；番剧记录、昵称及头像存储于 Supabase 云端。我们不会要求或保存你的邮箱密码。</p><h3>第三方数据</h3><p>动画资料来自第三方公开数据服务，名称、封面、集数和评分可能存在延迟或误差。</p><h3>隐私与安全</h3><p>每位用户只能访问自己的番剧记录。头像为公开链接，请不要上传包含敏感个人信息的图片。</p><h3>数据管理</h3><p>你可以在番剧详情中删除记录。如需处理账户或其他数据，请通过“联系我们”与开发者联系。</p><small>更新日期：2026年9月13日</small></div></>}{panel==="help"&&<><p className="eyebrow">HELP & FEEDBACK</p><h2>帮助与反馈</h2><div className="faq"><details open><summary>怎样添加一部番剧？</summary><p>进入“搜索”，输入番剧名称，点击“添加”。它会先进入“待确认”。</p></details><details><summary>怎样移到正看或看完？</summary><p>点击待确认中的番剧，在详情里选择“正看”或“看完”，然后保存。</p></details><details><summary>记录会不会丢失？</summary><p>登录后数据会保存到云端。更换设备时使用同一个邮箱登录即可同步。</p></details><details><summary>头像为什么上传失败？</summary><p>请上传不超过 2MB 的 JPG、PNG 或 WebP 图片，并确认网络连接正常。</p></details></div><button className="feedback-button" onClick={()=>{setPanel(null);setContactOpen(true)}}><Mail size={17}/>联系开发者反馈</button></>}</section></div>}
   </div>;
 }
 

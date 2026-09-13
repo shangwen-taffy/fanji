@@ -131,12 +131,12 @@ export default function Home() {
     if (error) return showNotice(error.message.toLowerCase().includes("rate limit") ? "验证码发送过于频繁，请稍后再试" : `验证码发送失败：${error.message}`);
     setCodeSent(true);
     setOtp("");
-    showNotice("六位验证码已发送，请检查邮箱");
+    showNotice("八位验证码已发送，请检查邮箱");
   }
 
   async function verifyCode() {
     if (!supabase) return showNotice("尚未配置Supabase");
-    if (!/^\d{6}$/.test(otp)) return showNotice("请输入邮件中的六位验证码");
+    if (!/^\d{8}$/.test(otp)) return showNotice("请输入邮件中的八位验证码");
     setAuthBusy(true);
     const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" });
     setAuthBusy(false);
@@ -205,7 +205,7 @@ function ProfilePage({userEmail,email,setEmail,otp,setOtp,codeSent,setCodeSent,a
     localStorage.setItem("fanji-theme",next);
     showNotice("外观设置已保存");
   }
-  if (!userEmail) return <div className="profile-card"><div className="profile-icon"><UserRound size={30}/></div><p className="eyebrow">CLOUD SYNC</p><h1>登录尚文番迹</h1><p>{codeSent ? <>验证码已发送至 <b>{email}</b></> : "使用邮箱验证码登录，在不同设备同步片库。"}</p>{codeSent ? <><div className="login-row otp-row"><input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={event=>setOtp(event.target.value.replace(/\D/g,"").slice(0,6))} onKeyDown={event=>event.key === "Enter" && verifyCode()} placeholder="输入六位验证码"/><button disabled={authBusy} onClick={verifyCode}>{authBusy?<Loader2 className="spin" size={18}/>:"确认登录"}</button></div><div className="auth-links"><button disabled={authBusy} onClick={login}>重新发送验证码</button><button onClick={()=>{setCodeSent(false);setOtp("")}}>更换邮箱</button></div></> : <div className="login-row"><input type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} onKeyDown={event=>event.key === "Enter" && login()} placeholder="你的邮箱"/><button disabled={authBusy} onClick={login}>{authBusy?<Loader2 className="spin" size={18}/>:"发送验证码"}</button></div>}<small className="auth-tip">验证码仅用于登录，我们不会保存你的邮箱密码。</small></div>;
+  if (!userEmail) return <div className="profile-card"><div className="profile-icon"><UserRound size={30}/></div><p className="eyebrow">CLOUD SYNC</p><h1>登录尚文番迹</h1><p>{codeSent ? <>验证码已发送至 <b>{email}</b></> : "使用邮箱验证码登录，在不同设备同步片库。"}</p>{codeSent ? <><div className="login-row otp-row"><input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={otp} onChange={event=>setOtp(event.target.value.replace(/\D/g,"").slice(0,8))} onKeyDown={event=>event.key === "Enter" && verifyCode()} placeholder="输入八位验证码"/><button disabled={authBusy} onClick={verifyCode}>{authBusy?<Loader2 className="spin" size={18}/>:"确认登录"}</button></div><div className="auth-links"><button disabled={authBusy} onClick={login}>重新发送验证码</button><button onClick={()=>{setCodeSent(false);setOtp("")}}>更换邮箱</button></div></> : <div className="login-row"><input type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} onKeyDown={event=>event.key === "Enter" && login()} placeholder="你的邮箱"/><button disabled={authBusy} onClick={login}>{authBusy?<Loader2 className="spin" size={18}/>:"发送验证码"}</button></div>}<small className="auth-tip">验证码仅用于登录，我们不会保存你的邮箱密码。</small></div>;
   const initial = (displayName || userEmail)[0]?.toUpperCase();
   async function uploadAvatar(file?:File) {
     if (!file || !supabase) return;

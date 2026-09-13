@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.shangwen.fanji",
+      "sha256_cert_fingerprints": [
+        "D8:21:4D:E5:75:C5:17:BB:5D:CD:FF:CA:D7:A0:F5:C5:B7:E8:F8:66:AF:24:EA:29:9B:7C:2B:9E:92:BF:92:9A"
+      ]
+    }
+  }
+]

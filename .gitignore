@@ -21,6 +21,11 @@
 
 # production
 /build
+/android/.gradle/
+/android/app/build/
+/android/build/
+/android/*.keystore
+/android/*.jks
 
 # misc
 .DS_Store

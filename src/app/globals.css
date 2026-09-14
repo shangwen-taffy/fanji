@@ -8,6 +8,8 @@ button{color:inherit}
 .app-shell{min-height:100vh;background:#fffaf5;padding-bottom:104px;transition:background .25s,color .25s}
 .topbar{height:82px;padding:0 clamp(22px,5vw,72px);display:flex;align-items:center;border-bottom:1px solid rgba(234,219,210,.82);background:rgba(255,250,245,.92);position:sticky;top:0;z-index:35;backdrop-filter:blur(18px)}
 .compact-topbar{justify-content:space-between}
+.tab-search .topbar{position:absolute;left:0;right:0;top:0;background:transparent;border-bottom:0;backdrop-filter:none}
+.tab-search .four-page-content{padding-top:0}
 .brand{border:0;background:transparent;display:flex;align-items:center;gap:13px;padding:0;cursor:pointer;text-align:left}
 .brand-mark{width:48px;height:48px;border-radius:17px;background:#b47a65;color:#fff;display:grid;place-items:center;box-shadow:0 9px 22px rgba(169,111,88,.2)}
 .brand>span:last-child{font-family:Georgia,"Songti SC",serif;font-weight:700;font-size:22px;line-height:1.05;letter-spacing:.03em}
@@ -15,14 +17,15 @@ button{color:inherit}
 .page-context{font-size:12px;color:#aa8e83;letter-spacing:.12em}
 .page{width:min(1240px,calc(100% - 40px));margin:0 auto}
 .four-page-content{min-height:calc(100vh - 82px);padding-top:34px}
-.anime-hero{height:336px;position:relative;border-radius:42px;overflow:hidden;background:#f5e6dc;box-shadow:var(--shadow)}
+.search-home>.anime-hero{width:100vw;margin-left:calc(50% - 50vw)}
+.anime-hero{height:392px;position:relative;border-radius:0 0 34% 9% / 0 0 21% 10%;overflow:hidden;background:#f5e6dc;box-shadow:0 22px 55px rgba(105,68,58,.09)}
 .anime-hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.hero-copy{position:relative;z-index:1;width:47%;padding:54px 0 0 54px}
+.hero-copy{position:relative;z-index:1;width:min(47%,620px);padding:67px 0 0 max(7vw,54px)}
 .eyebrow{margin:0 0 13px;color:#b67b68;font-size:10px;font-weight:800;letter-spacing:.2em}
 .hero-copy h1,.simple-head h1,.profile-card h1{font-family:Georgia,"Songti SC",serif;font-weight:600;color:#4a2925}
 .hero-copy h1{font-size:52px;line-height:1.12;margin:0 0 18px;letter-spacing:.02em}
 .hero-copy>p:last-child,.simple-head>p:last-child{font-size:14px;color:#967b72;line-height:1.8;margin:0}
-.main-search{position:relative;z-index:3;margin:-34px auto 0;width:calc(100% - 74px);height:72px;background:#fff;display:flex;align-items:center;border:6px solid rgba(255,250,245,.94);border-radius:36px;box-shadow:0 14px 42px rgba(105,68,58,.14);color:#a47f72;padding-left:23px}
+.main-search{position:relative;z-index:3;margin:-47px auto 0;width:min(1340px,calc(100vw - 150px));height:72px;background:#fff;display:flex;align-items:center;border:6px solid rgba(255,250,245,.94);border-radius:36px 30px 38px 28px;box-shadow:0 14px 42px rgba(105,68,58,.14);color:#a47f72;padding-left:23px}
 .main-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:#4b2f2a;padding:0 16px;font-size:15px}
 .main-search input::placeholder{color:#bba39a}
 .main-search button{height:54px;min-width:152px;border:0;border-radius:27px;background:#8b5a4e;color:#fff;font-weight:700;cursor:pointer;display:grid;place-items:center;transition:transform .18s,background .18s}
@@ -45,12 +48,13 @@ button{color:inherit}
 .search-card div>button{margin-top:auto;height:40px;border:0;border-radius:20px;padding:0 18px;background:#8b5a4e;color:#fff;display:flex;align-items:center;gap:7px;cursor:pointer}
 .search-card button.added{background:#f6e3dc;color:#9b6157;cursor:default}
 .library-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.anime-card{border:1px solid rgba(234,219,210,.82);background:#fff;border-radius:28px;padding:0;overflow:hidden;text-align:left;cursor:pointer;box-shadow:0 10px 30px rgba(105,68,58,.055);transition:transform .2s,box-shadow .2s}
-.anime-card:hover{transform:translateY(-3px);box-shadow:0 18px 38px rgba(105,68,58,.12)}
-.cover{height:250px;position:relative;background:#f2e7df;overflow:hidden}
+.anime-card{border:0;background:transparent;border-radius:0;padding:0;overflow:visible;text-align:left;cursor:pointer;box-shadow:none;transition:transform .2s}
+.anime-card:hover{transform:translateY(-4px);box-shadow:none}
+.cover{height:250px;position:relative;background:#f2e7df;overflow:hidden;border-radius:34px 15px 34px 15px;box-shadow:0 12px 30px rgba(105,68,58,.11)}
+.anime-card:nth-child(3n+2) .cover{border-radius:18px 36px 18px 36px}.anime-card:nth-child(3n) .cover{border-radius:36px 36px 16px 36px}
 .cover img{width:100%;height:100%;object-fit:cover}
 .cover span{position:absolute;left:15px;top:15px;color:#fff;border-radius:999px;padding:6px 11px;font-size:10px;box-shadow:0 4px 12px rgba(74,41,37,.15)}
-.card-copy{padding:17px 18px 19px}
+.card-copy{padding:14px 8px 18px}
 .progress-line{height:5px;background:#f2e7e0;border-radius:5px;overflow:hidden;margin:14px 0 10px}.progress-line i{display:block;height:100%;background:#c98976;border-radius:5px}
 .card-meta{display:flex;align-items:center;justify-content:space-between;color:#9f887f;font-size:11px}.card-meta span{display:flex;align-items:center;gap:4px}
 .discovery-blank{min-height:250px;margin-top:30px;border-radius:36px;background:#f8ece5;display:flex;align-items:center;justify-content:center;gap:38px;padding:20px 50px;text-align:left;overflow:hidden}
@@ -79,10 +83,10 @@ button{color:inherit}
 /* Compact mobile poster wall: designed for large personal libraries. */
 @media(max-width:640px){
   .four-page-content{padding-top:10px}
-  .anime-hero{height:210px;border-radius:26px}
+  .anime-hero{height:260px;border-radius:0 0 30% 8% / 0 0 14% 7%}
   .anime-hero>img{object-position:64% center}
-  .hero-copy{width:59%;padding:24px 0 0 19px;background:rgba(255,250,245,.52)}
-  .hero-copy .eyebrow{font-size:7px;margin-bottom:8px}
+  .hero-copy{width:62%;padding:84px 0 0 19px;background:rgba(255,250,245,.52)}
+  .hero-copy .eyebrow{display:none}
   .hero-copy h1{font-size:27px;line-height:1.08;margin-bottom:11px}
   .hero-copy>p:last-child{font-size:10px;line-height:1.55;max-width:155px}
   .main-search{height:54px;margin-top:-21px;width:calc(100% - 16px);border-width:4px;padding-left:13px}

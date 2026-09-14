@@ -198,7 +198,7 @@ export default function Home() {
   const added = records.filter((item) => !["watching", "done"].includes(item.status));
   const totalEpisodes = records.reduce((sum, item) => sum + item.progress, 0);
 
-  return <main className={`app-shell four-page-app theme-${theme}`}>
+  return <main className={`app-shell four-page-app theme-${theme} tab-${tab}`}>
     <header className="topbar compact-topbar">
       <button className="brand" onClick={() => setTab("search")}><span className="brand-mark"><PawPrint size={24} weight="fill"/></span><span>尚文番迹<small>把热爱留在时间里</small></span></button>
       <div className="page-context">{tab === "search" ? "发现动画" : tab === "watching" ? "正在观看" : tab === "done" ? "看完收藏" : "个人中心"}</div>
@@ -224,13 +224,13 @@ export default function Home() {
 }
 
 function SearchPage({query,setQuery,searchAnime,searching,results,clearResults,records,added,addFromSearch,setSelected}:{query:string;setQuery:(x:string)=>void;searchAnime:()=>void;searching:boolean;results:Anime[];clearResults:()=>void;records:RecordItem[];added:RecordItem[];addFromSearch:(x:Anime)=>void;setSelected:(x:RecordItem)=>void}) {
-  return <>
+  return <div className="search-home">
     <section className="anime-hero"><img src="/art/search-hero.png" alt="樱花窗前与猫狗相伴的少女"/><div className="hero-copy"><p className="eyebrow">SHANGWEN ANIME JOURNEY</p><h1>找到下一部<br/>喜欢的番</h1><p>搜索动画资料，加入清单，再慢慢把故事看完。</p></div></section>
     <div className="main-search"><Search size={20}/><input value={query} onChange={(event)=>setQuery(event.target.value)} onKeyDown={(event)=>event.key === "Enter" && searchAnime()} placeholder="搜索番剧名称，例如：葬送的芙莉莲"/><button onClick={searchAnime}>{searching?<Loader2 className="spin" size={18}/>:"搜索"}</button></div>
     {results.length > 0 && <><div className="search-results-heading"><SectionTitle title="搜索结果" meta={`${results.length} 个结果`}/><button className="search-back-button" onClick={clearResults}><ArrowLeft size={17}/>返回</button></div><div className="result-grid">{results.map(item=><SearchCard key={item.id} item={item} added={records.some(record=>record.id===item.id)} onAdd={addFromSearch}/>)}</div></>}
     {!results.length && !searching && added.length === 0 && <div className="discovery-blank"><img src="/art/empty-companions.png" alt="猫咪和小狗守着番剧手账"/><div><p className="eyebrow">A NEW STORY AWAITS</p><h2>从一部动画开始</h2><p>搜索结果会显示封面、集数和社区评分。</p></div></div>}
     {added.length > 0 && <><SectionTitle title="待确认" meta={`${added.length} 部动画`}/><div className="library-grid">{added.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div></>}
-  </>;
+  </div>;
 }
 
 function CollectionPage({eyebrow,title,description,items,empty,setSelected}:{eyebrow:string;title:string;description:string;items:RecordItem[];empty:string;setSelected:(x:RecordItem)=>void}) {

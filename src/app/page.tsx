@@ -45,11 +45,6 @@ export default function Home() {
   const [theme, setTheme] = useState(()=>typeof window === "undefined" ? "light" : localStorage.getItem("fanji-theme") || "light");
 
   useEffect(() => {
-    const requestedTab = new URLSearchParams(window.location.search).get("tab");
-    if (requestedTab === "search" || requestedTab === "watching" || requestedTab === "done" || requestedTab === "profile") setTab(requestedTab);
-  }, []);
-
-  useEffect(() => {
     if (!supabase) return;
     const cleanAddress = () => {
       if (window.location.hash.includes("access_token") || window.location.hash.includes("refresh_token")) {

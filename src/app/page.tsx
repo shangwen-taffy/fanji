@@ -73,10 +73,10 @@ export default function Home() {
   }, [supabase]);
 
   useEffect(() => {
-    if (!supabase || !userEmail) return;
+    if (!supabase || !userEmail || !myUserId) return;
     Promise.all([
-      supabase.from("user_anime").select("*").order("updated_at", { ascending: false }),
-      supabase.from("anime_collections").select("id,name").order("created_at", { ascending: true }),
+      supabase.from("user_anime").select("*").eq("user_id", myUserId).order("updated_at", { ascending: false }),
+      supabase.from("anime_collections").select("id,name").eq("user_id", myUserId).order("created_at", { ascending: true }),
     ]).then(([animeResponse, collectionResponse]) => {
       setRecords((animeResponse.data ?? []).map((x) => ({
         id: x.anime_id, name: x.name, name_cn: x.name_cn, image: x.image_url,
@@ -88,7 +88,7 @@ export default function Home() {
         setCollectionsEnabled(true);
       }
     });
-  }, [supabase, userEmail]);
+  }, [supabase, userEmail, myUserId]);
 
   async function loadFriends() {
     if (!supabase || !myUserId) return;

@@ -3,11 +3,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft, Camera, Check, CaretRight as ChevronRight, Question as CircleHelp,
+  ArrowLeft, Binoculars, Camera, Check, CaretRight as ChevronRight, Question as CircleHelp,
   Copy, FileText, Folder, FolderOpen, Heart, Envelope as Mail, CircleNotch as Loader2,
-  SignOut as LogOut, Minus, PawPrint, Play, Plus, MagnifyingGlass as Search,
-  Gear as Settings, ShieldCheck, Star, Trash as Trash2,
-  User as UserRound, X,
+  SignOut as LogOut, Minus, PawPrint, Plus, MagnifyingGlass as Search,
+  Gear as Settings, SealCheck, ShieldCheck, Star, Trash as Trash2,
+  PlayCircle, User as UserRound, UserCircle, X,
 } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -206,16 +206,16 @@ export default function Home() {
 
     <section className="page four-page-content">
       {tab === "search" && <SearchPage query={query} setQuery={setQuery} searchAnime={searchAnime} searching={searching} results={results} clearResults={()=>setResults([])} records={records} added={added} addFromSearch={addFromSearch} setSelected={setSelected}/>} 
-      {tab === "watching" && <CollectionPage eyebrow="WATCHING" title="正在看的故事" description={`${watching.length} 部动画正在陪你度过这段时间。`} items={watching} empty="还没有正在看的动画；从搜索页加入后改为“正看”吧。" setSelected={setSelected}/>} 
-      {tab === "done" && <DonePage items={done} collections={collections} collectionsEnabled={collectionsEnabled} createCollection={createCollection} renameCollection={renameCollection} deleteCollection={deleteCollection} setSelected={setSelected}/>}
+      {tab === "watching" && <CollectionPage eyebrow="WATCHING" title="正在看的故事" description={`${watching.length} 部动画正在陪你度过这段时间。`} items={watching} empty="还没有正在看的动画；从搜索页加入后改为“正看”吧。" setSelected={setSelected} onDiscover={()=>setTab("search")}/>}
+      {tab === "done" && <DonePage items={done} collections={collections} collectionsEnabled={collectionsEnabled} createCollection={createCollection} renameCollection={renameCollection} deleteCollection={deleteCollection} setSelected={setSelected} onDiscover={()=>setTab("search")}/>}
       {tab === "profile" && <ProfilePage userEmail={userEmail} email={email} setEmail={setEmail} otp={otp} setOtp={setOtp} codeSent={codeSent} setCodeSent={setCodeSent} authBusy={authBusy} login={login} verifyCode={verifyCode} supabase={supabase} displayName={displayName} setDisplayName={setDisplayName} saveProfile={saveProfile} avatarUrl={avatarUrl} setAvatarUrl={setAvatarUrl} theme={theme} setTheme={setTheme} stats={{all:records.length,pending:added.length,watching:watching.length,done:done.length,episodes:totalEpisodes}} showNotice={showNotice}/>}
     </section>
 
     <nav className="bottom-nav persistent-nav">
-      <NavButton active={tab === "search"} icon={<Search/>} label="搜索" onClick={() => setTab("search")}/>
-      <NavButton active={tab === "watching"} icon={<Play/>} label="正看" badge={watching.length} onClick={() => setTab("watching")}/>
-      <NavButton active={tab === "done"} icon={<Check/>} label="看完" badge={done.length} onClick={() => setTab("done")}/>
-      <NavButton active={tab === "profile"} icon={<UserRound/>} label="我的" onClick={() => setTab("profile")}/>
+      <NavButton active={tab === "search"} icon={<Binoculars weight="duotone"/>} label="搜索" onClick={() => setTab("search")}/>
+      <NavButton active={tab === "watching"} icon={<PlayCircle weight="duotone"/>} label="正看" badge={watching.length} onClick={() => setTab("watching")}/>
+      <NavButton active={tab === "done"} icon={<SealCheck weight="duotone"/>} label="看完" badge={done.length} onClick={() => setTab("done")}/>
+      <NavButton active={tab === "profile"} icon={<UserCircle weight="duotone"/>} label="我的" onClick={() => setTab("profile")}/>
     </nav>
 
     {notice && <div className="toast"><Check size={17}/>{notice}</div>}
@@ -233,11 +233,11 @@ function SearchPage({query,setQuery,searchAnime,searching,results,clearResults,r
   </div>;
 }
 
-function CollectionPage({eyebrow,title,description,items,empty,setSelected}:{eyebrow:string;title:string;description:string;items:RecordItem[];empty:string;setSelected:(x:RecordItem)=>void}) {
-  return <><div className="simple-head illustrated-head"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div><img src="/art/profile-spring.png" alt="樱花树下的少女与宠物"/></div>{items.length?<div className="library-grid collection-grid">{items.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div>:<Empty text={empty}/>}</>;
+function CollectionPage({eyebrow,title,description,items,empty,setSelected,onDiscover}:{eyebrow:string;title:string;description:string;items:RecordItem[];empty:string;setSelected:(x:RecordItem)=>void;onDiscover:()=>void}) {
+  return <><div className={`simple-head illustrated-head ${eyebrow.toLowerCase()}-head`}><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div><img src="/art/profile-spring.png" alt="樱花树下的少女与宠物"/></div>{items.length?<div className="library-grid collection-grid">{items.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div>:<Empty text={empty} onDiscover={onDiscover}/>}</>;
 }
 
-function DonePage({items,collections,collectionsEnabled,createCollection,renameCollection,deleteCollection,setSelected}:{items:RecordItem[];collections:AnimeCollection[];collectionsEnabled:boolean;createCollection:(name:string)=>Promise<boolean>;renameCollection:(id:number,name:string)=>Promise<boolean>;deleteCollection:(id:number)=>Promise<void>;setSelected:(x:RecordItem)=>void}) {
+function DonePage({items,collections,collectionsEnabled,createCollection,renameCollection,deleteCollection,setSelected,onDiscover}:{items:RecordItem[];collections:AnimeCollection[];collectionsEnabled:boolean;createCollection:(name:string)=>Promise<boolean>;renameCollection:(id:number,name:string)=>Promise<boolean>;deleteCollection:(id:number)=>Promise<void>;setSelected:(x:RecordItem)=>void;onDiscover:()=>void}) {
   const [active,setActive]=useState<number | "all" | "uncategorized">("all");
   const [dialog,setDialog]=useState<"create" | AnimeCollection | null>(null);
   const [name,setName]=useState("");
@@ -245,14 +245,14 @@ function DonePage({items,collections,collectionsEnabled,createCollection,renameC
   const openCreate=()=>{setName("");setDialog("create")};
   const openEdit=(folder:AnimeCollection)=>{setName(folder.name);setDialog(folder)};
   return <>
-    <div className="simple-head illustrated-head done-head"><div><p className="eyebrow">COMPLETED</p><h1>看完的每一次心动</h1><p>已经看完 {items.length} 部，共记录 {items.reduce((sum,item)=>sum+item.progress,0)} 集。</p></div><img src="/art/profile-spring.png" alt="樱花树下的少女与宠物"/><button className="new-folder" onClick={openCreate}><FolderOpen size={18}/><span>新建收藏夹</span></button></div>
+    <div className="simple-head illustrated-head done-head"><div><p className="eyebrow">COMPLETED</p><h1>看完的每一次心动</h1><p>已经看完 {items.length} 部，共记录 {items.reduce((sum,item)=>sum+item.progress,0)} 集。</p></div><img src="/art/search-hero.png" alt="樱花窗前的少女与宠物"/><button className="new-folder" onClick={openCreate}><FolderOpen size={18}/><span>新建收藏夹</span></button></div>
     {!collectionsEnabled && <div className="folder-setup-tip"><Folder size={17}/>收藏夹功能需要先运行新版数据库脚本；番剧记录不受影响。</div>}
     <div className="folder-strip">
       <button className={active==="all"?"chosen":""} onClick={()=>setActive("all")}><FolderOpen/>全部 <b>{items.length}</b></button>
       <button className={active==="uncategorized"?"chosen":""} onClick={()=>setActive("uncategorized")}><Folder/>未分类 <b>{items.filter((item)=>!item.collectionId).length}</b></button>
       {collections.map((folder)=><button key={folder.id} className={active===folder.id?"chosen":""} onClick={()=>setActive(folder.id)} onDoubleClick={()=>openEdit(folder)}><Folder/> {folder.name} <b>{items.filter((item)=>item.collectionId===folder.id).length}</b><i onClick={(event)=>{event.stopPropagation();openEdit(folder)}}>•••</i></button>)}
     </div>
-    {filtered.length?<div className="library-grid collection-grid">{filtered.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected} folderName={collections.find((folder)=>folder.id===item.collectionId)?.name}/>)}</div>:<Empty text={active === "all" ? "看完一部动画后，它会收藏在这里。" : "这个收藏夹还是空的，打开一部已看完的番剧就能把它放进来。"}/>}
+    {filtered.length?<div className="library-grid collection-grid">{filtered.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected} folderName={collections.find((folder)=>folder.id===item.collectionId)?.name}/>)}</div>:<Empty text={active === "all" ? "看完一部动画后，它会收藏在这里。" : "这个收藏夹还是空的，打开一部已看完的番剧就能把它放进来。"} onDiscover={onDiscover}/>}
     {dialog && <div className="contact-backdrop" onClick={()=>setDialog(null)}><section className="folder-dialog" onClick={(event)=>event.stopPropagation()}><button className="close" onClick={()=>setDialog(null)}><X/></button><div className="contact-icon"><FolderOpen/></div><p className="eyebrow">ANIME COLLECTION</p><h2>{dialog==="create"?"新建收藏夹":"管理收藏夹"}</h2><p>比如“治愈系”“年度最佳”“和朋友一起看”。</p><input autoFocus maxLength={30} value={name} onChange={(event)=>setName(event.target.value)} onKeyDown={async(event)=>{if(event.key==="Enter"){const ok=dialog==="create"?await createCollection(name):await renameCollection(dialog.id,name);if(ok)setDialog(null)}}} placeholder="收藏夹名称"/><div className="folder-dialog-actions">{dialog!=="create"&&<button className="danger" onClick={async()=>{await deleteCollection(dialog.id);setActive("all");setDialog(null)}}><Trash2/>删除</button>}<button className="primary" onClick={async()=>{const ok=dialog==="create"?await createCollection(name):await renameCollection(dialog.id,name);if(ok)setDialog(null)}}><Check/>{dialog==="create"?"创建":"保存"}</button></div></section></div>}
   </>;
 }
@@ -308,4 +308,4 @@ function NavButton({active,icon,label,badge,onClick}:{active:boolean;icon:React.
 function SectionTitle({title,meta}:{title:string;meta:string}) { return <div className="section-title compact-section-title"><div><h2>{title}</h2></div><span>{meta}</span></div> }
 function ProfileStat({value,label}:{value:string|number;label:string}) { return <div><b>{value}</b><span>{label}</span></div> }
 function SettingRow({icon,title,subtitle,onClick}:{icon:React.ReactNode;title:string;subtitle:string;onClick:()=>void}) { return <button className="setting-row" onClick={onClick}><i>{icon}</i><span><b>{title}</b><small>{subtitle}</small></span><ChevronRight/></button> }
-function Empty({text}:{text:string}) { return <div className="empty"><img src="/art/empty-companions.png" alt="守着番剧手账的猫咪和小狗"/><div><Heart/><h2>下一段故事在等你</h2><p>{text}</p></div></div> }
+function Empty({text,onDiscover}:{text:string;onDiscover?:()=>void}) { return <div className="empty"><img src="/art/empty-companions.png" alt="守着番剧手账的猫咪和小狗"/><div><Heart weight="duotone"/><h2>下一段故事在等你</h2><p>{text}</p>{onDiscover&&<button onClick={onDiscover}><Binoculars weight="duotone"/>去发现动画</button>}</div></div> }

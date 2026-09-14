@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, Binoculars, Camera, Check, CaretRight as ChevronRight, Question as CircleHelp,
   Copy, FileText, Folder, FolderOpen, Heart, Envelope as Mail, CircleNotch as Loader2,
-  SignOut as LogOut, Minus, PawPrint, Plus, MagnifyingGlass as Search,
+  SignOut as LogOut, Minus, Plus, MagnifyingGlass as Search,
   Gear as Settings, SealCheck, ShieldCheck, Star, Trash as Trash2,
   PlayCircle, User as UserRound, UserCircle, X,
 } from "@phosphor-icons/react";
@@ -43,6 +43,11 @@ export default function Home() {
   const [displayName, setDisplayName] = useState("番剧旅行者");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [theme, setTheme] = useState(()=>typeof window === "undefined" ? "light" : localStorage.getItem("fanji-theme") || "light");
+
+  useEffect(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    if (requestedTab === "search" || requestedTab === "watching" || requestedTab === "done" || requestedTab === "profile") setTab(requestedTab);
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -200,7 +205,7 @@ export default function Home() {
 
   return <main className={`app-shell four-page-app theme-${theme} tab-${tab}`}>
     <header className="topbar compact-topbar">
-      <button className="brand" onClick={() => setTab("search")}><span className="brand-mark"><PawPrint size={24} weight="fill"/></span><span>尚文番迹<small>把热爱留在时间里</small></span></button>
+      <button className="brand" onClick={() => setTab("search")}><span className="brand-mark"><img src="/icons/app-icon-source.png" alt="尚文番迹图标"/></span><span>尚文番迹<small>把热爱留在时间里</small></span></button>
       <div className="page-context">{tab === "search" ? "发现动画" : tab === "watching" ? "正在观看" : tab === "done" ? "看完收藏" : "个人中心"}</div>
     </header>
 

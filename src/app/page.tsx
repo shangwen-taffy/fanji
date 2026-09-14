@@ -115,8 +115,14 @@ export default function Home() {
 
   async function sendFriendRequest(targetEmail: string) {
     if (!supabase || !myUserId) return false;
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError || !auth.user) { showNotice("登录状态已失效，请退出后重新登录"); return false; }
     const { error } = await supabase.rpc("send_friend_request", { target_email: targetEmail.trim() });
-    if (error) { showNotice(error.message.replace("P0001: ", "")); return false; }
+    if (error) {
+      const message=error.message.replace("P0001: ", "");
+      showNotice(message.includes("schema cache") ? "好友接口正在更新，请完全关闭应用后重试" : message);
+      return false;
+    }
     showNotice("好友申请已送出，等对方同意吧");
     await loadFriends(); return true;
   }

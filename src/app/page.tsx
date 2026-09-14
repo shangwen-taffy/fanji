@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, Camera, Check, CaretRight as ChevronRight, Question as CircleHelp,
-  Copy, FileText, Heart, Envelope as Mail, CircleNotch as Loader2,
+  Copy, FileText, Folder, FolderOpen, Heart, Envelope as Mail, CircleNotch as Loader2,
   SignOut as LogOut, Minus, PawPrint, Play, Plus, MagnifyingGlass as Search,
   Gear as Settings, ShieldCheck, Star, Trash as Trash2,
   User as UserRound, X,
@@ -14,7 +14,8 @@ import { createClient } from "@/lib/supabase/client";
 type Status = "wish" | "watching" | "done" | "paused" | "dropped";
 type Tab = "search" | "watching" | "done" | "profile";
 type Anime = { id: number; name: string; name_cn?: string; image?: string; eps?: number; score?: number; summary?: string };
-type RecordItem = Anime & { status: Status; progress: number; rating: number; note?: string };
+type AnimeCollection = { id: number; name: string };
+type RecordItem = Anime & { status: Status; progress: number; rating: number; note?: string; collectionId?: number | null };
 const CONTACT_EMAIL = "shaidurmxnxboeiei63929999@gmail.com";
 
 const statusMeta: Record<Status, { label: string; color: string }> = {
@@ -26,6 +27,8 @@ const statusMeta: Record<Status, { label: string; color: string }> = {
 export default function Home() {
   const supabase = useMemo(() => createClient(), []);
   const [records, setRecords] = useState<RecordItem[]>([]);
+  const [collections, setCollections] = useState<AnimeCollection[]>([]);
+  const [collectionsEnabled, setCollectionsEnabled] = useState(false);
   const [tab, setTab] = useState<Tab>("search");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Anime[]>([]);
@@ -65,12 +68,19 @@ export default function Home() {
 
   useEffect(() => {
     if (!supabase || !userEmail) return;
-    supabase.from("user_anime").select("*").order("updated_at", { ascending: false }).then(({ data }) => {
-      setRecords((data ?? []).map((x) => ({
+    Promise.all([
+      supabase.from("user_anime").select("*").order("updated_at", { ascending: false }),
+      supabase.from("anime_collections").select("id,name").order("created_at", { ascending: true }),
+    ]).then(([animeResponse, collectionResponse]) => {
+      setRecords((animeResponse.data ?? []).map((x) => ({
         id: x.anime_id, name: x.name, name_cn: x.name_cn, image: x.image_url,
         eps: x.total_episodes, score: x.community_score, status: x.status,
-        progress: x.progress, rating: x.rating, note: x.note,
+        progress: x.progress, rating: x.rating, note: x.note, collectionId: x.collection_id,
       })));
+      if (!collectionResponse.error) {
+        setCollections(collectionResponse.data ?? []);
+        setCollectionsEnabled(true);
+      }
     });
   }, [supabase, userEmail]);
 
@@ -96,13 +106,44 @@ export default function Home() {
     setSelected((current) => current?.id === item.id ? item : current);
     if (supabase && userEmail) {
       const { data: auth } = await supabase.auth.getUser();
-      await supabase.from("user_anime").upsert({
+      const payload: Record<string, unknown> = {
         user_id: auth.user?.id, anime_id: item.id, name: item.name, name_cn: item.name_cn,
         image_url: item.image, total_episodes: item.eps, community_score: item.score,
         status: item.status, progress: item.progress, rating: item.rating, note: item.note,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id,anime_id" });
+      };
+      if (collectionsEnabled) payload.collection_id = item.status === "done" ? item.collectionId ?? null : null;
+      const { error } = await supabase.from("user_anime").upsert(payload, { onConflict: "user_id,anime_id" });
+      if (error) showNotice(`保存失败：${error.message}`);
     }
+  }
+
+  async function createCollection(name: string) {
+    const cleanName = name.trim().slice(0, 30);
+    if (!cleanName) return false;
+    if (!supabase || !userEmail) { showNotice("登录后才能创建并同步收藏夹"); return false; }
+    if (!collectionsEnabled) { showNotice("请先在 Supabase 运行新版 supabase.sql"); return false; }
+    const { data: auth } = await supabase.auth.getUser();
+    const { data, error } = await supabase.from("anime_collections").insert({ user_id: auth.user?.id, name: cleanName }).select("id,name").single();
+    if (error) { showNotice(error.code === "23505" ? "已经有同名收藏夹" : `创建失败：${error.message}`); return false; }
+    setCollections((old) => [...old, data]); showNotice(`已创建“${cleanName}”`); return true;
+  }
+
+  async function renameCollection(id: number, name: string) {
+    const cleanName = name.trim().slice(0, 30);
+    if (!cleanName || !supabase) return false;
+    const { error } = await supabase.from("anime_collections").update({ name: cleanName, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) { showNotice(`重命名失败：${error.message}`); return false; }
+    setCollections((old) => old.map((folder) => folder.id === id ? { ...folder, name: cleanName } : folder)); return true;
+  }
+
+  async function deleteCollection(id: number) {
+    if (!supabase || !window.confirm("删除收藏夹？其中的番剧会保留在“未分类”中。")) return;
+    const { error } = await supabase.from("anime_collections").delete().eq("id", id);
+    if (error) return showNotice(`删除失败：${error.message}`);
+    setCollections((old) => old.filter((folder) => folder.id !== id));
+    setRecords((old) => old.map((item) => item.collectionId === id ? { ...item, collectionId: null } : item));
+    showNotice("收藏夹已删除，番剧已移到未分类");
   }
 
   async function addFromSearch(anime: Anime) {
@@ -166,7 +207,7 @@ export default function Home() {
     <section className="page four-page-content">
       {tab === "search" && <SearchPage query={query} setQuery={setQuery} searchAnime={searchAnime} searching={searching} results={results} clearResults={()=>setResults([])} records={records} added={added} addFromSearch={addFromSearch} setSelected={setSelected}/>} 
       {tab === "watching" && <CollectionPage eyebrow="WATCHING" title="正在看的故事" description={`${watching.length} 部动画正在陪你度过这段时间。`} items={watching} empty="还没有正在看的动画；从搜索页加入后改为“正看”吧。" setSelected={setSelected}/>} 
-      {tab === "done" && <CollectionPage eyebrow="COMPLETED" title="看完的每一次心动" description={`已经看完 ${done.length} 部，共记录 ${done.reduce((sum,item)=>sum+item.progress,0)} 集。`} items={done} empty="看完一部动画后，它会收藏在这里。" setSelected={setSelected}/>} 
+      {tab === "done" && <DonePage items={done} collections={collections} collectionsEnabled={collectionsEnabled} createCollection={createCollection} renameCollection={renameCollection} deleteCollection={deleteCollection} setSelected={setSelected}/>}
       {tab === "profile" && <ProfilePage userEmail={userEmail} email={email} setEmail={setEmail} otp={otp} setOtp={setOtp} codeSent={codeSent} setCodeSent={setCodeSent} authBusy={authBusy} login={login} verifyCode={verifyCode} supabase={supabase} displayName={displayName} setDisplayName={setDisplayName} saveProfile={saveProfile} avatarUrl={avatarUrl} setAvatarUrl={setAvatarUrl} theme={theme} setTheme={setTheme} stats={{all:records.length,pending:added.length,watching:watching.length,done:done.length,episodes:totalEpisodes}} showNotice={showNotice}/>}
     </section>
 
@@ -178,7 +219,7 @@ export default function Home() {
     </nav>
 
     {notice && <div className="toast"><Check size={17}/>{notice}</div>}
-    {selected && <EditModal item={selected} saveRecord={saveRecord} deleteRecord={deleteRecord} close={() => setSelected(null)} showNotice={showNotice} afterSave={(status)=>{if(status === "watching") setTab("watching"); if(status === "done") setTab("done")}}/>} 
+    {selected && <EditModal item={selected} collections={collections} saveRecord={saveRecord} deleteRecord={deleteRecord} close={() => setSelected(null)} showNotice={showNotice} afterSave={(status)=>{if(status === "watching") setTab("watching"); if(status === "done") setTab("done")}}/>}
   </main>;
 }
 
@@ -187,13 +228,33 @@ function SearchPage({query,setQuery,searchAnime,searching,results,clearResults,r
     <section className="anime-hero"><img src="/art/search-hero.png" alt="樱花窗前与猫狗相伴的少女"/><div className="hero-copy"><p className="eyebrow">SHANGWEN ANIME JOURNEY</p><h1>找到下一部<br/>喜欢的番</h1><p>搜索动画资料，加入清单，再慢慢把故事看完。</p></div></section>
     <div className="main-search"><Search size={20}/><input value={query} onChange={(event)=>setQuery(event.target.value)} onKeyDown={(event)=>event.key === "Enter" && searchAnime()} placeholder="搜索番剧名称，例如：葬送的芙莉莲"/><button onClick={searchAnime}>{searching?<Loader2 className="spin" size={18}/>:"搜索"}</button></div>
     {results.length > 0 && <><div className="search-results-heading"><SectionTitle title="搜索结果" meta={`${results.length} 个结果`}/><button className="search-back-button" onClick={clearResults}><ArrowLeft size={17}/>返回</button></div><div className="result-grid">{results.map(item=><SearchCard key={item.id} item={item} added={records.some(record=>record.id===item.id)} onAdd={addFromSearch}/>)}</div></>}
-    {!results.length && !searching && <div className="discovery-blank"><img src="/art/empty-companions.png" alt="猫咪和小狗守着番剧手账"/><div><p className="eyebrow">A NEW STORY AWAITS</p><h2>从一部动画开始</h2><p>搜索结果会显示封面、集数和社区评分。</p></div></div>}
+    {!results.length && !searching && added.length === 0 && <div className="discovery-blank"><img src="/art/empty-companions.png" alt="猫咪和小狗守着番剧手账"/><div><p className="eyebrow">A NEW STORY AWAITS</p><h2>从一部动画开始</h2><p>搜索结果会显示封面、集数和社区评分。</p></div></div>}
     {added.length > 0 && <><SectionTitle title="待确认" meta={`${added.length} 部动画`}/><div className="library-grid">{added.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div></>}
   </>;
 }
 
 function CollectionPage({eyebrow,title,description,items,empty,setSelected}:{eyebrow:string;title:string;description:string;items:RecordItem[];empty:string;setSelected:(x:RecordItem)=>void}) {
   return <><div className="simple-head"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div>{items.length?<div className="library-grid collection-grid">{items.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div>:<Empty text={empty}/>}</>;
+}
+
+function DonePage({items,collections,collectionsEnabled,createCollection,renameCollection,deleteCollection,setSelected}:{items:RecordItem[];collections:AnimeCollection[];collectionsEnabled:boolean;createCollection:(name:string)=>Promise<boolean>;renameCollection:(id:number,name:string)=>Promise<boolean>;deleteCollection:(id:number)=>Promise<void>;setSelected:(x:RecordItem)=>void}) {
+  const [active,setActive]=useState<number | "all" | "uncategorized">("all");
+  const [dialog,setDialog]=useState<"create" | AnimeCollection | null>(null);
+  const [name,setName]=useState("");
+  const filtered = active === "all" ? items : active === "uncategorized" ? items.filter((item)=>!item.collectionId) : items.filter((item)=>item.collectionId===active);
+  const openCreate=()=>{setName("");setDialog("create")};
+  const openEdit=(folder:AnimeCollection)=>{setName(folder.name);setDialog(folder)};
+  return <>
+    <div className="simple-head done-head"><div><p className="eyebrow">COMPLETED</p><h1>看完的每一次心动</h1><p>已经看完 {items.length} 部，共记录 {items.reduce((sum,item)=>sum+item.progress,0)} 集。</p></div><button className="new-folder" onClick={openCreate}><FolderOpen size={18}/><span>新建收藏夹</span></button></div>
+    {!collectionsEnabled && <div className="folder-setup-tip"><Folder size={17}/>收藏夹功能需要先运行新版数据库脚本；番剧记录不受影响。</div>}
+    <div className="folder-strip">
+      <button className={active==="all"?"chosen":""} onClick={()=>setActive("all")}><FolderOpen/>全部 <b>{items.length}</b></button>
+      <button className={active==="uncategorized"?"chosen":""} onClick={()=>setActive("uncategorized")}><Folder/>未分类 <b>{items.filter((item)=>!item.collectionId).length}</b></button>
+      {collections.map((folder)=><button key={folder.id} className={active===folder.id?"chosen":""} onClick={()=>setActive(folder.id)} onDoubleClick={()=>openEdit(folder)}><Folder/> {folder.name} <b>{items.filter((item)=>item.collectionId===folder.id).length}</b><i onClick={(event)=>{event.stopPropagation();openEdit(folder)}}>•••</i></button>)}
+    </div>
+    {filtered.length?<div className="library-grid collection-grid">{filtered.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected} folderName={collections.find((folder)=>folder.id===item.collectionId)?.name}/>)}</div>:<Empty text={active === "all" ? "看完一部动画后，它会收藏在这里。" : "这个收藏夹还是空的，打开一部已看完的番剧就能把它放进来。"}/>}
+    {dialog && <div className="contact-backdrop" onClick={()=>setDialog(null)}><section className="folder-dialog" onClick={(event)=>event.stopPropagation()}><button className="close" onClick={()=>setDialog(null)}><X/></button><div className="contact-icon"><FolderOpen/></div><p className="eyebrow">ANIME COLLECTION</p><h2>{dialog==="create"?"新建收藏夹":"管理收藏夹"}</h2><p>比如“治愈系”“年度最佳”“和朋友一起看”。</p><input autoFocus maxLength={30} value={name} onChange={(event)=>setName(event.target.value)} onKeyDown={async(event)=>{if(event.key==="Enter"){const ok=dialog==="create"?await createCollection(name):await renameCollection(dialog.id,name);if(ok)setDialog(null)}}} placeholder="收藏夹名称"/><div className="folder-dialog-actions">{dialog!=="create"&&<button className="danger" onClick={async()=>{await deleteCollection(dialog.id);setActive("all");setDialog(null)}}><Trash2/>删除</button>}<button className="primary" onClick={async()=>{const ok=dialog==="create"?await createCollection(name):await renameCollection(dialog.id,name);if(ok)setDialog(null)}}><Check/>{dialog==="create"?"创建":"保存"}</button></div></section></div>}
+  </>;
 }
 
 function ProfilePage({userEmail,email,setEmail,otp,setOtp,codeSent,setCodeSent,authBusy,login,verifyCode,supabase,displayName,setDisplayName,saveProfile,avatarUrl,setAvatarUrl,theme,setTheme,stats,showNotice}:{userEmail:string|null;email:string;setEmail:(x:string)=>void;otp:string;setOtp:(x:string)=>void;codeSent:boolean;setCodeSent:(x:boolean)=>void;authBusy:boolean;login:()=>void;verifyCode:()=>void;supabase:ReturnType<typeof createClient>;displayName:string;setDisplayName:(x:string)=>void;saveProfile:()=>void;avatarUrl:string;setAvatarUrl:(x:string)=>void;theme:string;setTheme:(x:string)=>void;stats:{all:number;pending:number;watching:number;done:number;episodes:number};showNotice:(x:string)=>void}) {
@@ -236,12 +297,12 @@ function ProfilePage({userEmail,email,setEmail,otp,setOtp,codeSent,setCodeSent,a
   </div>;
 }
 
-function EditModal({item,saveRecord,deleteRecord,close,showNotice,afterSave}:{item:RecordItem;saveRecord:(x:RecordItem)=>Promise<void>;deleteRecord:(x:RecordItem)=>void;close:()=>void;showNotice:(x:string)=>void;afterSave:(status:Status)=>void}) {
+function EditModal({item,collections,saveRecord,deleteRecord,close,showNotice,afterSave}:{item:RecordItem;collections:AnimeCollection[];saveRecord:(x:RecordItem)=>Promise<void>;deleteRecord:(x:RecordItem)=>void;close:()=>void;showNotice:(x:string)=>void;afterSave:(status:Status)=>void}) {
   const [draft,setDraft]=useState(item);
-  return <div className="modal-backdrop" onClick={close}><div className="modal" onClick={event=>event.stopPropagation()}><button className="close" onClick={close}><X/></button><img src={draft.image || "/placeholder.svg"} alt=""/><div className="modal-content"><p className="eyebrow">EDIT RECORD</p><h2>{draft.name_cn || draft.name}</h2><p className="muted">{draft.name}</p><label>放到哪里</label><div className="status-pills">{(["watching","done"] as Status[]).map(status=><button key={status} className={draft.status===status?"chosen":""} onClick={()=>setDraft({...draft,status})}>{statusMeta[status].label}</button>)}</div><label>观看进度</label><div className="counter"><button onClick={()=>setDraft({...draft,progress:Math.max(0,draft.progress-1)})}><Minus/></button><b>{draft.progress} <small>/ {draft.eps || "?"} 集</small></b><button onClick={()=>setDraft({...draft,progress:Math.min(draft.eps||999,draft.progress+1)})}><Plus/></button></div><label>我的评分</label><div className="rating">{[1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} className={draft.rating>=n?"lit":""} onClick={()=>setDraft({...draft,rating:n})}>{n}</button>)}</div><label htmlFor="anime-note">我的短评</label><textarea id="anime-note" className="note-input" maxLength={500} value={draft.note || ""} onChange={event=>setDraft({...draft,note:event.target.value})} placeholder="写下看完后的感受……"/><div className="modal-actions"><button className="delete-record" onClick={()=>deleteRecord(draft)}><Trash2 size={17}/> 删除</button><button className="save-close" onClick={async()=>{await saveRecord(draft);close();afterSave(draft.status);showNotice(draft.status === "watching" ? "已移到正看" : draft.status === "done" ? "已移到看完" : "记录已保存")}}><Check size={17}/> 保存并关闭</button></div></div></div></div>;
+  return <div className="modal-backdrop" onClick={close}><div className="modal" onClick={event=>event.stopPropagation()}><button className="close" onClick={close}><X/></button><img src={draft.image || "/placeholder.svg"} alt=""/><div className="modal-content"><p className="eyebrow">EDIT RECORD</p><h2>{draft.name_cn || draft.name}</h2><p className="muted">{draft.name}</p><label>放到哪里</label><div className="status-pills">{(["watching","done"] as Status[]).map(status=><button key={status} className={draft.status===status?"chosen":""} onClick={()=>setDraft({...draft,status,collectionId:status==="done"?draft.collectionId:null})}>{statusMeta[status].label}</button>)}</div>{draft.status==="done"&&<><label>看完收藏夹</label><div className="collection-pills"><button className={!draft.collectionId?"chosen":""} onClick={()=>setDraft({...draft,collectionId:null})}>未分类</button>{collections.map((folder)=><button key={folder.id} className={draft.collectionId===folder.id?"chosen":""} onClick={()=>setDraft({...draft,collectionId:folder.id})}>{folder.name}</button>)}</div>{!collections.length&&<small className="modal-tip">可在“看完”页新建收藏夹后再分类。</small>}</>}<label>观看进度</label><div className="counter"><button onClick={()=>setDraft({...draft,progress:Math.max(0,draft.progress-1)})}><Minus/></button><b>{draft.progress} <small>/ {draft.eps || "?"} 集</small></b><button onClick={()=>setDraft({...draft,progress:Math.min(draft.eps||999,draft.progress+1)})}><Plus/></button></div><label>我的评分</label><div className="rating">{[1,2,3,4,5,6,7,8,9,10].map(n=><button key={n} className={draft.rating>=n?"lit":""} onClick={()=>setDraft({...draft,rating:n})}>{n}</button>)}</div><label htmlFor="anime-note">我的短评</label><textarea id="anime-note" className="note-input" maxLength={500} value={draft.note || ""} onChange={event=>setDraft({...draft,note:event.target.value})} placeholder="写下看完后的感受……"/><div className="modal-actions"><button className="delete-record" onClick={()=>deleteRecord(draft)}><Trash2 size={17}/> 删除</button><button className="save-close" onClick={async()=>{await saveRecord(draft);close();afterSave(draft.status);showNotice(draft.status === "watching" ? "已移到正看" : draft.status === "done" ? "已移到看完" : "记录已保存")}}><Check size={17}/> 保存并关闭</button></div></div></div></div>;
 }
 
-function AnimeCard({item,onOpen}:{item:RecordItem;onOpen:(x:RecordItem)=>void}) { const percent=item.eps?Math.round(item.progress/item.eps*100):0; return <button className="anime-card" onClick={()=>onOpen(item)}><div className="cover"><img src={item.image || "/placeholder.svg"} alt=""/><span style={{background:statusMeta[item.status].color}}>{statusMeta[item.status].label}</span></div><div className="card-copy"><h3>{item.name_cn || item.name}</h3><p>{item.name}</p><div className="progress-line"><i style={{width:`${percent}%`}}/></div><div className="card-meta"><span>{item.progress} / {item.eps || "?"} 集</span>{item.rating>0?<span><Star size={13} fill="currentColor"/> {item.rating}</span>:item.score?<span><Star size={13}/> {item.score}</span>:null}</div></div></button> }
+function AnimeCard({item,onOpen,folderName}:{item:RecordItem;onOpen:(x:RecordItem)=>void;folderName?:string}) { const percent=item.eps?Math.round(item.progress/item.eps*100):0; return <button className="anime-card" onClick={()=>onOpen(item)}><div className="cover"><img src={item.image || "/placeholder.svg"} alt=""/><span style={{background:statusMeta[item.status].color}}>{statusMeta[item.status].label}</span>{folderName&&<em><Folder size={11}/>{folderName}</em>}</div><div className="card-copy"><h3>{item.name_cn || item.name}</h3><p>{item.name}</p><div className="progress-line"><i style={{width:`${percent}%`}}/></div><div className="card-meta"><span>{item.progress} / {item.eps || "?"} 集</span>{item.rating>0?<span><Star size={13} fill="currentColor"/> {item.rating}</span>:item.score?<span><Star size={13}/> {item.score}</span>:null}</div></div></button> }
 function SearchCard({item,added,onAdd}:{item:Anime;added:boolean;onAdd:(x:Anime)=>void}) { return <article className="search-card"><img src={item.image || "/placeholder.svg"} alt=""/><div><h3>{item.name_cn || item.name}</h3><p>{item.name}</p><span>{item.eps || "?"} 集 · <Star size={13} fill="currentColor"/> {item.score || "暂无"}</span><button className={added?"added":""} disabled={added} onClick={()=>onAdd(item)}>{added?<><Check size={16}/>已添加</>:<><Plus size={16}/>添加</>}</button></div></article> }
 function NavButton({active,icon,label,badge,onClick}:{active:boolean;icon:React.ReactNode;label:string;badge?:number;onClick:()=>void}) { return <button className={active?"active":""} onClick={onClick}><span className="nav-icon">{icon}{badge? <b>{badge}</b>:null}</span><span>{label}</span></button> }
 function SectionTitle({title,meta}:{title:string;meta:string}) { return <div className="section-title compact-section-title"><div><h2>{title}</h2></div><span>{meta}</span></div> }

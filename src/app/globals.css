@@ -128,7 +128,7 @@ button{color:inherit}
 /* 每日推荐：仅在搜索框聚焦且未提交搜索时展开。 */
 .daily-recommend{margin:22px 0 8px;padding:24px;border:1px solid #efd9cf;border-radius:34px 20px 38px 24px;background:linear-gradient(135deg,#fff9f5 0%,#fbe8e1 100%);box-shadow:0 14px 40px rgba(120,73,60,.08);animation:daily-in .28s ease-out}
 @keyframes daily-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-.daily-title{display:flex;align-items:end;justify-content:space-between;margin-bottom:17px}.daily-title h2{margin:3px 0 0;font:27px Georgia,"Songti SC",serif;color:#54332d}.daily-title>span{color:#aa8276;font-size:11px}.daily-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.daily-grid .search-card{grid-template-columns:96px 1fr;min-height:138px;background:rgba(255,255,255,.82)}.daily-grid .search-card>img{width:96px;height:138px}.daily-grid .search-card>div{padding:13px}.recommend-loading{min-height:110px;display:flex;align-items:center;justify-content:center;gap:9px;color:#9b7368}
+.daily-title{display:flex;align-items:end;justify-content:space-between;margin-bottom:17px}.daily-title h2{margin:3px 0 0;font:27px Georgia,"Songti SC",serif;color:#54332d}.daily-actions{display:flex;align-items:center;gap:10px}.daily-actions>span{color:#aa8276;font-size:11px}.daily-actions button{height:38px;padding:0 15px;border:0;border-radius:20px 14px 21px 15px;background:#9b6455;color:#fff;display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer;box-shadow:0 7px 16px rgba(126,76,63,.18)}.daily-actions button:disabled{opacity:.65}.daily-actions svg{width:16px;height:16px}.daily-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.daily-grid .search-card{grid-template-columns:96px 1fr;min-height:138px;background:rgba(255,255,255,.82)}.daily-grid .search-card>img{width:96px;height:138px}.daily-grid .search-card>div{padding:13px}.recommend-loading{min-height:110px;display:flex;align-items:center;justify-content:center;gap:9px;color:#9b7368}
 
 /* 统一按钮语言：柔软、不呆板，并放大核心保存动作。 */
 .save-close{height:60px;border-radius:30px 21px 31px 22px;font-size:16px;font-weight:800;letter-spacing:.04em;background:linear-gradient(135deg,#a66e5d,#855146);box-shadow:0 12px 26px rgba(126,76,63,.24);transition:.18s transform,.18s box-shadow}
@@ -143,6 +143,12 @@ button{color:inherit}
 /* 手机详情页的核心操作必须一眼可见：厚实的大按钮，而不是细横条。 */
 .save-close{height:72px;border-radius:36px 25px 38px 27px;font-size:18px;background:#985f50;box-shadow:0 10px 0 #75463c,0 20px 34px rgba(126,76,63,.24)}
 .save-close svg{width:23px;height:23px}
+
+@media(max-width:640px){
+  .daily-actions{align-items:flex-end;flex-direction:column;gap:6px}
+  .daily-actions>span{font-size:8px;max-width:120px;text-align:right}
+  .daily-actions button{height:34px;padding:0 12px;font-size:11px}
+}
 @media(max-width:640px){.modal-actions{gap:20px;margin-top:32px}.save-close{height:84px;min-height:84px;border-radius:42px 28px 44px 30px;font-size:20px;box-shadow:0 12px 0 #75463c,0 22px 34px rgba(126,76,63,.26)}.save-close svg{width:27px;height:27px}.delete-record{height:62px;font-size:16px}}
 
 .folder-create-bar{width:max-content;min-width:178px;height:48px;margin:0 0 12px 2px;padding:0 20px;border-radius:25px 18px 26px 19px;justify-content:center;font-weight:800;letter-spacing:.02em;box-shadow:0 9px 20px rgba(126,76,63,.17)}

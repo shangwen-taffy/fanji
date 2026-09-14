@@ -8,6 +8,7 @@ import {
   SignOut as LogOut, Minus, Plus, MagnifyingGlass as Search,
   Gear as Settings, SealCheck, ShieldCheck, Star, Trash as Trash2,
   PlayCircle, User as UserRound, UserCircle, X, UserPlus, UsersThree, PaperPlaneTilt,
+  ArrowsClockwise,
 } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -278,23 +279,31 @@ function SearchPage({query,setQuery,searchAnime,searching,results,clearResults,r
   const [recommendations,setRecommendations]=useState<Anime[]>([]);
   const [recommendBusy,setRecommendBusy]=useState(false);
   const [hasSearched,setHasSearched]=useState(false);
-  async function loadRecommendations() {
+  const [recommendPage,setRecommendPage]=useState(0);
+  async function loadRecommendations(page=recommendPage) {
     setFocused(true);
-    if (recommendations.length || recommendBusy) return;
+    if ((recommendations.length && page===recommendPage) || recommendBusy) return;
     setRecommendBusy(true);
-    const pool=["葬送的芙莉莲","摇曳露营","夏目友人帐","轻音少女","间谍过家家","跃动青春","孤独摇滚","迷宫饭","白箱","紫罗兰永恒花园","药屋少女的呢喃","胆大党"];
-    const day=Math.floor(Date.now()/86400000);
-    const picks=Array.from({length:6},(_,index)=>pool[(day+index*5)%pool.length]);
+    const pool=["葬送的芙莉莲","摇曳露营","夏目友人帐","轻音少女","间谍过家家","跃动青春","孤独摇滚","迷宫饭","白箱","紫罗兰永恒花园","药屋少女的呢喃","胆大党","钢之炼金术师FA","命运石之门","四月是你的谎言","来自深渊","辉夜大小姐想让我告白","冰菓","灵能百分百","比宇宙更远的地方","少女终末旅行","虫师","吹响吧！上低音号","月色真美","宝石之国","奇巧计程车","86－不存在的战区－","新世纪福音战士","天元突破红莲螺岩","蜂蜜与四叶草","花牌情缘","狼与香辛料","夏日重现","赛博朋克：边缘行者","别当欧尼酱了！","擅长捉弄的高木同学"];
+    const now=new Date();
+    const day=now.getFullYear()*10000+(now.getMonth()+1)*100+now.getDate();
+    const ordered=pool.map((title,index)=>({title,rank:((index+1)*2654435761+(day+1)*1013904223)>>>0})).sort((a,b)=>a.rank-b.rank).map(item=>item.title);
+    const picks=Array.from({length:12},(_,index)=>ordered[(page*6+index)%ordered.length]);
     const items=await Promise.all(picks.map(async title=>{try{const response=await fetch(`/api/search?q=${encodeURIComponent(title)}`);const data=await response.json();return data.items?.[0] as Anime|undefined}catch{return undefined}}));
-    setRecommendations(items.filter((item):item is Anime=>Boolean(item)));
+    const existing=new Set(records.map(record=>record.id));
+    const seen=new Set<number>();
+    setRecommendations(items.filter((item):item is Anime=>Boolean(item)).filter(item=>!existing.has(item.id)&&!seen.has(item.id)&&Boolean(seen.add(item.id))).slice(0,6));
+    setRecommendPage(page);
     setRecommendBusy(false);
   }
+  function changeRecommendations(){void loadRecommendations(recommendPage+1)}
   function submitSearch(){setHasSearched(true);setFocused(false);searchAnime()}
   const showDaily=focused&&!hasSearched&&!results.length;
+  const visibleRecommendations=recommendations.filter(item=>!records.some(record=>record.id===item.id));
   return <div className="search-home">
     <section className="anime-hero"><img src="/art/search-hero.png" alt="樱花窗前与猫狗相伴的少女"/><div className="hero-copy"><p className="eyebrow">SHANGWEN ANIME JOURNEY</p><h1>找到下一部<br/><span>喜欢的番</span></h1><p>搜索动画资料，加入清单，再慢慢把故事看完。</p></div><aside className="hero-note">好看的动画<br/>总会在某个时刻<br/>温柔地见到你。<b>♥</b></aside><p className="hero-script">Anime for a<br/>Brighter Today.</p></section>
-    <div className="main-search"><Search size={20}/><input value={query} onFocus={loadRecommendations} onChange={(event)=>{setQuery(event.target.value);setHasSearched(false)}} onKeyDown={(event)=>event.key === "Enter" && submitSearch()} placeholder="搜索番剧名称，例如：葬送的芙莉莲"/><button onClick={submitSearch}>{searching?<Loader2 className="spin" size={18}/>:"搜索"}</button></div>
-    {showDaily&&<section className="daily-recommend"><div className="daily-title"><div><p className="eyebrow">DAILY PICKS</p><h2>今日份的心动推荐</h2></div><span>每天换一组 · 点卡片即可添加</span></div>{recommendBusy?<div className="recommend-loading"><Loader2 className="spin"/>正在翻找今天的好番…</div>:<div className="daily-grid">{recommendations.map(item=><SearchCard key={item.id} item={item} added={records.some(record=>record.id===item.id)} onAdd={addFromSearch}/>)}</div>}</section>}
+    <div className="main-search"><Search size={20}/><input value={query} onFocus={()=>void loadRecommendations()} onChange={(event)=>{setQuery(event.target.value);setHasSearched(false)}} onKeyDown={(event)=>event.key === "Enter" && submitSearch()} placeholder="搜索番剧名称，例如：葬送的芙莉莲"/><button onClick={submitSearch}>{searching?<Loader2 className="spin" size={18}/>:"搜索"}</button></div>
+    {showDaily&&<section className="daily-recommend"><div className="daily-title"><div><p className="eyebrow">DAILY PICKS</p><h2>今日份的心动推荐</h2></div><div className="daily-actions"><span>每天自动换新 · 只推荐未添加</span><button onClick={changeRecommendations} disabled={recommendBusy}><ArrowsClockwise className={recommendBusy?"spin":""}/>换一组</button></div></div>{recommendBusy?<div className="recommend-loading"><Loader2 className="spin"/>正在翻找今天的好番…</div>:<div className="daily-grid">{visibleRecommendations.map(item=><SearchCard key={item.id} item={item} added={false} onAdd={addFromSearch}/>)}</div>}</section>}
     {results.length > 0 && <><div className="search-results-heading"><SectionTitle title="搜索结果" meta={`${results.length} 个结果`}/><button className="search-back-button" onClick={clearResults}><ArrowLeft size={17}/>返回</button></div><div className="result-grid">{results.map(item=><SearchCard key={item.id} item={item} added={records.some(record=>record.id===item.id)} onAdd={addFromSearch}/>)}</div></>}
     {!results.length && !searching && added.length === 0 && <div className="discovery-blank"><img src="/art/empty-companions.png" alt="猫咪和小狗守着番剧手账"/><div><p className="eyebrow">A NEW STORY AWAITS</p><h2>从一部动画开始</h2><p>搜索结果会显示封面、集数和社区评分。</p></div></div>}
     {added.length > 0 && <><SectionTitle title="待确认" meta={`${added.length} 部动画`}/><div className="library-grid">{added.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div></>}

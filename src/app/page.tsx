@@ -284,15 +284,17 @@ function SearchPage({query,setQuery,searchAnime,searching,results,clearResults,r
     setFocused(true);
     if ((recommendations.length && page===recommendPage) || recommendBusy) return;
     setRecommendBusy(true);
-    const pool=["葬送的芙莉莲","摇曳露营","夏目友人帐","轻音少女","间谍过家家","跃动青春","孤独摇滚","迷宫饭","白箱","紫罗兰永恒花园","药屋少女的呢喃","胆大党","钢之炼金术师FA","命运石之门","四月是你的谎言","来自深渊","辉夜大小姐想让我告白","冰菓","灵能百分百","比宇宙更远的地方","少女终末旅行","虫师","吹响吧！上低音号","月色真美","宝石之国","奇巧计程车","86－不存在的战区－","新世纪福音战士","天元突破红莲螺岩","蜂蜜与四叶草","花牌情缘","狼与香辛料","夏日重现","赛博朋克：边缘行者","别当欧尼酱了！","擅长捉弄的高木同学"];
     const now=new Date();
     const day=now.getFullYear()*10000+(now.getMonth()+1)*100+now.getDate();
-    const ordered=pool.map((title,index)=>({title,rank:((index+1)*2654435761+(day+1)*1013904223)>>>0})).sort((a,b)=>a.rank-b.rank).map(item=>item.title);
-    const picks=Array.from({length:12},(_,index)=>ordered[(page*6+index)%ordered.length]);
-    const items=await Promise.all(picks.map(async title=>{try{const response=await fetch(`/api/search?q=${encodeURIComponent(title)}`);const data=await response.json();return data.items?.[0] as Anime|undefined}catch{return undefined}}));
+    let items: Anime[]=[];
+    try {
+      const response=await fetch(`/api/recommend?day=${day}&page=${page}`);
+      const data=await response.json();
+      items=data.items??[];
+    } catch { items=[] }
     const existing=new Set(records.map(record=>record.id));
     const seen=new Set<number>();
-    setRecommendations(items.filter((item):item is Anime=>Boolean(item)).filter(item=>!existing.has(item.id)&&!seen.has(item.id)&&Boolean(seen.add(item.id))).slice(0,6));
+    setRecommendations(items.filter(item=>!existing.has(item.id)&&!seen.has(item.id)&&Boolean(seen.add(item.id))).slice(0,6));
     setRecommendPage(page);
     setRecommendBusy(false);
   }

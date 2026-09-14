@@ -313,8 +313,9 @@ function DonePage({items,collections,collectionsEnabled,createCollection,renameC
   const openCreate=()=>{setName("");setDialog("create")};
   const openEdit=(folder:AnimeCollection)=>{setName(folder.name);setDialog(folder)};
   return <>
-    <div className="simple-head illustrated-head done-head"><div><p className="eyebrow">COMPLETED</p><h1>看完的每一次心动</h1><p>已经看完 {items.length} 部，共记录 {items.reduce((sum,item)=>sum+item.progress,0)} 集。</p></div><img src="/art/search-hero.png" alt="樱花窗前的少女与宠物"/><button className="new-folder" onClick={openCreate}><FolderOpen size={18}/><span>新建收藏夹</span></button></div>
+    <div className="simple-head illustrated-head done-head"><div><p className="eyebrow">COMPLETED</p><h1>看完的每一次心动</h1><p>已经看完 {items.length} 部，共记录 {items.reduce((sum,item)=>sum+item.progress,0)} 集。</p></div><img src="/art/search-hero.png" alt="樱花窗前的少女与宠物"/></div>
     {!collectionsEnabled && <div className="folder-setup-tip"><Folder size={17}/>收藏夹功能需要先运行新版数据库脚本；番剧记录不受影响。</div>}
+    <button className="new-folder folder-create-bar" onClick={openCreate}><FolderOpen size={18}/><span>新建收藏夹</span></button>
     <div className="folder-strip">
       <button className={active==="all"?"chosen":""} onClick={()=>setActive("all")}><FolderOpen/>全部 <b>{items.length}</b></button>
       <button className={active==="uncategorized"?"chosen":""} onClick={()=>setActive("uncategorized")}><Folder/>未分类 <b>{items.filter((item)=>!item.collectionId).length}</b></button>

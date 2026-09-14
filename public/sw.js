@@ -1,4 +1,4 @@
-const CACHE_NAME = "shangwen-fanji-v1";
+const CACHE_NAME = "shangwen-fanji-v2";
 const STATIC_ASSETS = [
   "/offline.html",
   "/icons/icon-192.png",

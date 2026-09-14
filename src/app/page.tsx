@@ -225,7 +225,7 @@ export default function Home() {
 
 function SearchPage({query,setQuery,searchAnime,searching,results,clearResults,records,added,addFromSearch,setSelected}:{query:string;setQuery:(x:string)=>void;searchAnime:()=>void;searching:boolean;results:Anime[];clearResults:()=>void;records:RecordItem[];added:RecordItem[];addFromSearch:(x:Anime)=>void;setSelected:(x:RecordItem)=>void}) {
   return <div className="search-home">
-    <section className="anime-hero"><img src="/art/search-hero.png" alt="樱花窗前与猫狗相伴的少女"/><div className="hero-copy"><p className="eyebrow">SHANGWEN ANIME JOURNEY</p><h1>找到下一部<br/>喜欢的番</h1><p>搜索动画资料，加入清单，再慢慢把故事看完。</p></div></section>
+    <section className="anime-hero"><img src="/art/search-hero.png" alt="樱花窗前与猫狗相伴的少女"/><div className="hero-copy"><p className="eyebrow">SHANGWEN ANIME JOURNEY</p><h1>找到下一部<br/><span>喜欢的番</span></h1><p>搜索动画资料，加入清单，再慢慢把故事看完。</p></div><aside className="hero-note">好看的动画<br/>总会在某个时刻<br/>温柔地见到你。<b>♥</b></aside><p className="hero-script">Anime for a<br/>Brighter Today.</p></section>
     <div className="main-search"><Search size={20}/><input value={query} onChange={(event)=>setQuery(event.target.value)} onKeyDown={(event)=>event.key === "Enter" && searchAnime()} placeholder="搜索番剧名称，例如：葬送的芙莉莲"/><button onClick={searchAnime}>{searching?<Loader2 className="spin" size={18}/>:"搜索"}</button></div>
     {results.length > 0 && <><div className="search-results-heading"><SectionTitle title="搜索结果" meta={`${results.length} 个结果`}/><button className="search-back-button" onClick={clearResults}><ArrowLeft size={17}/>返回</button></div><div className="result-grid">{results.map(item=><SearchCard key={item.id} item={item} added={records.some(record=>record.id===item.id)} onAdd={addFromSearch}/>)}</div></>}
     {!results.length && !searching && added.length === 0 && <div className="discovery-blank"><img src="/art/empty-companions.png" alt="猫咪和小狗守着番剧手账"/><div><p className="eyebrow">A NEW STORY AWAITS</p><h2>从一部动画开始</h2><p>搜索结果会显示封面、集数和社区评分。</p></div></div>}
@@ -234,7 +234,7 @@ function SearchPage({query,setQuery,searchAnime,searching,results,clearResults,r
 }
 
 function CollectionPage({eyebrow,title,description,items,empty,setSelected}:{eyebrow:string;title:string;description:string;items:RecordItem[];empty:string;setSelected:(x:RecordItem)=>void}) {
-  return <><div className="simple-head"><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div>{items.length?<div className="library-grid collection-grid">{items.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div>:<Empty text={empty}/>}</>;
+  return <><div className="simple-head illustrated-head"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div><img src="/art/profile-spring.png" alt="樱花树下的少女与宠物"/></div>{items.length?<div className="library-grid collection-grid">{items.map(item=><AnimeCard key={item.id} item={item} onOpen={setSelected}/>)}</div>:<Empty text={empty}/>}</>;
 }
 
 function DonePage({items,collections,collectionsEnabled,createCollection,renameCollection,deleteCollection,setSelected}:{items:RecordItem[];collections:AnimeCollection[];collectionsEnabled:boolean;createCollection:(name:string)=>Promise<boolean>;renameCollection:(id:number,name:string)=>Promise<boolean>;deleteCollection:(id:number)=>Promise<void>;setSelected:(x:RecordItem)=>void}) {
@@ -245,7 +245,7 @@ function DonePage({items,collections,collectionsEnabled,createCollection,renameC
   const openCreate=()=>{setName("");setDialog("create")};
   const openEdit=(folder:AnimeCollection)=>{setName(folder.name);setDialog(folder)};
   return <>
-    <div className="simple-head done-head"><div><p className="eyebrow">COMPLETED</p><h1>看完的每一次心动</h1><p>已经看完 {items.length} 部，共记录 {items.reduce((sum,item)=>sum+item.progress,0)} 集。</p></div><button className="new-folder" onClick={openCreate}><FolderOpen size={18}/><span>新建收藏夹</span></button></div>
+    <div className="simple-head illustrated-head done-head"><div><p className="eyebrow">COMPLETED</p><h1>看完的每一次心动</h1><p>已经看完 {items.length} 部，共记录 {items.reduce((sum,item)=>sum+item.progress,0)} 集。</p></div><img src="/art/profile-spring.png" alt="樱花树下的少女与宠物"/><button className="new-folder" onClick={openCreate}><FolderOpen size={18}/><span>新建收藏夹</span></button></div>
     {!collectionsEnabled && <div className="folder-setup-tip"><Folder size={17}/>收藏夹功能需要先运行新版数据库脚本；番剧记录不受影响。</div>}
     <div className="folder-strip">
       <button className={active==="all"?"chosen":""} onClick={()=>setActive("all")}><FolderOpen/>全部 <b>{items.length}</b></button>
@@ -308,4 +308,4 @@ function NavButton({active,icon,label,badge,onClick}:{active:boolean;icon:React.
 function SectionTitle({title,meta}:{title:string;meta:string}) { return <div className="section-title compact-section-title"><div><h2>{title}</h2></div><span>{meta}</span></div> }
 function ProfileStat({value,label}:{value:string|number;label:string}) { return <div><b>{value}</b><span>{label}</span></div> }
 function SettingRow({icon,title,subtitle,onClick}:{icon:React.ReactNode;title:string;subtitle:string;onClick:()=>void}) { return <button className="setting-row" onClick={onClick}><i>{icon}</i><span><b>{title}</b><small>{subtitle}</small></span><ChevronRight/></button> }
-function Empty({text}:{text:string}) { return <div className="empty"><Heart/><p>{text}</p></div> }
+function Empty({text}:{text:string}) { return <div className="empty"><img src="/art/empty-companions.png" alt="守着番剧手账的猫咪和小狗"/><div><Heart/><h2>下一段故事在等你</h2><p>{text}</p></div></div> }
